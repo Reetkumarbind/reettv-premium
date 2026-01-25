@@ -72,6 +72,9 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       hlsRef.current = null;
     }
 
+    // Pause video before loading new stream
+    video.pause();
+
     const loadStream = () => {
       if (Hls.isSupported()) {
         const hls = new Hls({
@@ -102,7 +105,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (hls.levels.length > 0) {
             hls.currentLevel = hls.levels.length - 1; // Select highest quality
           }
-          video.play().catch(console.error);
+          // Only attempt to play if not already playing
+          if (video.paused) {
+            video.play().catch((error) => {
+              if (error.name !== 'AbortError') {
+                console.error('Play error:', error);
+              }
+            });
+          }
         });
 
         hls.on(Hls.Events.ERROR, (_, data) => {
@@ -121,7 +131,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         video.src = channel.url;
         video.addEventListener('loadedmetadata', () => {
           setIsLoading(false);
-          video.play().catch(console.error);
+          if (video.paused) {
+            video.play().catch((error) => {
+              if (error.name !== 'AbortError') {
+                console.error('Play error:', error);
+              }
+            });
+          }
         });
       } else {
         setError('HLS not supported in this browser');
@@ -133,10 +149,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     // Timeout for loading
     const timeout = setTimeout(() => {
-      if (isLoading) {
-        setError('Stream took too long to load');
-        setIsLoading(false);
-      }
+      setIsLoading(false);
+      setError('Stream took too long to load');
     }, 15000);
 
     return () => {
@@ -145,8 +159,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
+      // Pause video when unmounting
+      video.pause();
     };
-  }, [channel, isLoading, retryCount]);
+  }, [channel]);
 
   // Video event handlers
   useEffect(() => {
@@ -195,7 +211,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (isPlaying) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play().catch(console.error);
+        videoRef.current.play().catch((error) => {
+          if (error.name !== 'AbortError') {
+            console.error('Play error:', error);
+          }
+        });
       }
     }
   };
@@ -259,7 +279,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         ref={videoRef}
         className="w-full h-full object-cover"
         playsInline
-        autoPlay
         preload="auto"
         crossOrigin="anonymous"
       />
