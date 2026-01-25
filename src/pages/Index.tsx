@@ -33,6 +33,7 @@ const Index: React.FC = () => {
   useEffect(() => {
     const initApp = async () => {
       try {
+        console.log('Starting to load channels');
         setIsLoading(true);
         setError(null);
 
@@ -40,13 +41,16 @@ const Index: React.FC = () => {
         setFavorites(new Set(savedFavorites));
 
         const data = await fetchAndParseM3U(M3U_URL);
+        console.log('Loaded channels:', data.length);
         const validChannels = data.filter(channel =>
           channel.url && channel.name && channel.id
         );
+        console.log('Valid channels:', validChannels.length);
 
         setChannels(validChannels);
         setIsLoading(false);
       } catch (err) {
+        console.error('Error loading channels:', err);
         setError(err instanceof Error ? err.message : 'Connection failed');
         setIsLoading(false);
       }
@@ -56,6 +60,32 @@ const Index: React.FC = () => {
 
   const handleRefresh = useCallback(() => {
     setRefreshKey(prev => prev + 1);
+  }, []);
+
+
+
+  useEffect(() => {
+    return () => {
+      keyboardService.destroy();
+    };
+  }, [keyboardService]);
+
+  useEffect(() => {
+    StorageService.saveFavorites(Array.from(favorites));
+  }, [favorites]);
+
+  const handlePreferencesChange = (newPreferences: UserPreferences) => {
+    setPreferences(newPreferences);
+    StorageService.saveUserPreferences(newPreferences);
+  };
+
+const toggleFavorite = useCallback((channelId: string) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(channelId)) next.delete(channelId);
+      else next.add(channelId);
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -140,30 +170,6 @@ const Index: React.FC = () => {
 
     return () => keyboardService.clearShortcuts();
   }, [preferences.keyboardShortcuts, viewMode, currentIndex, channels, keyboardService, toggleFavorite]);
-
-  useEffect(() => {
-    return () => {
-      keyboardService.destroy();
-    };
-  }, [keyboardService]);
-
-  useEffect(() => {
-    StorageService.saveFavorites(Array.from(favorites));
-  }, [favorites]);
-
-  const handlePreferencesChange = (newPreferences: UserPreferences) => {
-    setPreferences(newPreferences);
-    StorageService.saveUserPreferences(newPreferences);
-  };
-
-  const toggleFavorite = useCallback((channelId: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(channelId)) next.delete(channelId);
-      else next.add(channelId);
-      return next;
-    });
-  }, []);
 
   const handleNext = useCallback(() => {
     if (channels.length === 0) return;
