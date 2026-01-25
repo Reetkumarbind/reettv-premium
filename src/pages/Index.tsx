@@ -139,7 +139,7 @@ const Index: React.FC = () => {
     });
 
     return () => keyboardService.clearShortcuts();
-  }, [preferences.keyboardShortcuts, viewMode, currentIndex, channels]);
+  }, [preferences.keyboardShortcuts, viewMode, currentIndex, channels, keyboardService, toggleFavorite]);
 
   useEffect(() => {
     return () => {

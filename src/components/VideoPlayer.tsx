@@ -146,7 +146,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         hlsRef.current = null;
       }
     };
-  }, [channel]);
+  }, [channel, isLoading, retryCount]);
 
   // Video event handlers
   useEffect(() => {
@@ -257,7 +257,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Video Element */}
       <video
         ref={videoRef}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-cover"
         playsInline
         autoPlay
         preload="auto"
