@@ -10,7 +10,7 @@ import KeyboardShortcuts from '../components/KeyboardShortcuts';
 import MiniPlayer from '../components/MiniPlayer';
 import { Loader2, AlertCircle, Tv, RefreshCw } from 'lucide-react';
 
-const M3U_URL = 'https://iptv-org.github.io/iptv/countries/in.m3u';
+const M3U_URL = 'https://iptv-org.github.io/iptv/index.m3u';
 
 type ViewMode = 'gallery' | 'player' | 'mini';
 

@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Search, Heart, Grid3X3, List, RefreshCw, Tv, Filter, X } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Search, Heart, Grid3X3, List, RefreshCw, Tv, Filter, X, ArrowUp, Loader2 } from 'lucide-react';
 import { IPTVChannel } from '../types';
 import ChannelCard from './ChannelCard';
 
@@ -27,11 +27,27 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [displayCount, setDisplayCount] = useState(20);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Get unique groups
+  // Get unique groups with channel counts and show top 10
   const groups = useMemo(() => {
-    const uniqueGroups = new Set(channels.map(c => c.group || 'General'));
-    return ['all', ...Array.from(uniqueGroups).sort()];
+    const groupCounts = new Map<string, number>();
+    
+    // Count channels per group
+    channels.forEach(c => {
+      const group = c.group || 'General';
+      groupCounts.set(group, (groupCounts.get(group) || 0) + 1);
+    });
+    
+    // Sort by count and get top 10
+    const sortedGroups = Array.from(groupCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([group]) => group);
+    
+    return ['all', ...sortedGroups];
   }, [channels]);
 
   // Filter and sort channels
@@ -73,6 +89,46 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
     return result;
   }, [channels, searchQuery, selectedGroup, showFavoritesOnly, sortBy, favorites]);
 
+  // Scroll detection for "scroll to top" button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollContainerRef.current) {
+        const scrollTop = scrollContainerRef.current.scrollTop;
+        setShowScrollTop(scrollTop > 500);
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, []);
+
+  // Infinite scroll - load more channels
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+        // Load more when user scrolls to 80% of the page
+        if (scrollTop + clientHeight >= scrollHeight * 0.8) {
+          setDisplayCount(prev => Math.min(prev + 20, filteredChannels.length));
+        }
+      }
+    };
+
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [filteredChannels.length]);
+
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(20);
+  }, [searchQuery, selectedGroup, showFavoritesOnly, sortBy]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await onRefresh();
@@ -86,11 +142,22 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
     }
   };
 
+  const scrollToTop = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const displayedChannels = filteredChannels.slice(0, displayCount);
+
   return (
-    <div className="min-h-screen bg-background safe-top safe-bottom">
+    <div ref={scrollContainerRef} className="h-screen w-full bg-background safe-top safe-bottom overflow-y-auto scrollbar-thin">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
             <div className="flex items-center gap-3">
@@ -145,10 +212,10 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
           </div>
 
           {/* Filters Bar */}
-          <div className="flex items-center gap-3 pb-4 overflow-x-auto scrollbar-hide">
-            {/* Group Filter */}
+          <div className="flex items-center gap-3 pb-4 overflow-x-auto scrollbar-thin">
+            {/* Group Filter - Top 10 Categories */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              {groups.slice(0, 8).map((group) => (
+              {groups.map((group) => (
                 <button
                   key={group}
                   onClick={() => setSelectedGroup(group)}
@@ -167,7 +234,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {/* Results Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -175,7 +242,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
               {showFavoritesOnly ? 'Favorites' : selectedGroup === 'all' ? 'All Channels' : selectedGroup}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {filteredChannels.length} channel{filteredChannels.length !== 1 ? 's' : ''} available
+              Showing {displayedChannels.length} of {filteredChannels.length} channel{filteredChannels.length !== 1 ? 's' : ''}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -235,24 +302,55 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
           </div>
         ) : (
           /* Channel Grid */
-          <div className={`grid gap-4 sm:gap-6 ${
-            viewMode === 'grid'
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-              : 'grid-cols-1'
-          }`}>
-            {filteredChannels.map((channel, index) => (
-              <ChannelCard
-                key={channel.id}
-                channel={channel}
-                isFavorite={favorites.has(channel.id)}
-                onSelect={() => handleChannelSelect(channel)}
-                onToggleFavorite={() => onToggleFavorite(channel.id)}
-                index={index}
-              />
-            ))}
-          </div>
+          <>
+            <div className={`grid gap-4 sm:gap-6 ${
+              viewMode === 'grid'
+                ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+                : 'grid-cols-1'
+            }`}>
+              {displayedChannels.map((channel, index) => (
+                <ChannelCard
+                  key={channel.id}
+                  channel={channel}
+                  isFavorite={favorites.has(channel.id)}
+                  onSelect={() => handleChannelSelect(channel)}
+                  onToggleFavorite={() => onToggleFavorite(channel.id)}
+                  index={index}
+                />
+              ))}
+            </div>
+            
+            {/* Load More Indicator */}
+            {displayedChannels.length < filteredChannels.length && (
+              <div className="flex flex-col justify-center items-center py-8 gap-4">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Loading more channels...
+                  </p>
+                </div>
+                <button
+                  onClick={() => setDisplayCount(filteredChannels.length)}
+                  className="btn-secondary text-sm"
+                >
+                  View All ({filteredChannels.length} channels)
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-gradient-premium shadow-lg hover:scale-110 active:scale-95 transition-all duration-300 animate-fade-in"
+          title="Scroll to top"
+        >
+          <ArrowUp className="w-5 h-5 text-white" />
+        </button>
+      )}
     </div>
   );
 };

@@ -76,14 +76,19 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (Hls.isSupported()) {
         const hls = new Hls({
           enableWorker: true,
-          lowLatencyMode: true,
+          lowLatencyMode: false,
           maxLoadingDelay: 4,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
+          maxBufferLength: 60,
+          maxMaxBufferLength: 120,
           manifestLoadingTimeOut: 10000,
-          manifestLoadingMaxRetry: 2,
+          manifestLoadingMaxRetry: 3,
           levelLoadingTimeOut: 10000,
           fragLoadingTimeOut: 20000,
+          startLevel: -1, // Start with highest quality
+          autoStartLoad: true,
+          capLevelToPlayerSize: false, // Don't limit quality based on player size
+          maxBufferSize: 60 * 1000 * 1000, // 60MB buffer
+          maxBufferHole: 0.5,
         });
 
         hlsRef.current = hls;
@@ -93,6 +98,10 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
           setRetryCount(0);
+          // Force highest quality level
+          if (hls.levels.length > 0) {
+            hls.currentLevel = hls.levels.length - 1; // Select highest quality
+          }
           video.play().catch(console.error);
         });
 
@@ -251,6 +260,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         className="w-full h-full object-contain"
         playsInline
         autoPlay
+        preload="auto"
+        crossOrigin="anonymous"
       />
 
       {/* Loading Overlay */}
@@ -265,26 +276,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Error Overlay */}
-      {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm p-6 text-center">
-          <div className="w-20 h-20 rounded-full bg-destructive/20 flex items-center justify-center mb-6">
-            <AlertCircle className="w-10 h-10 text-destructive" />
-          </div>
-          <h3 className="text-xl font-bold text-white mb-2">Stream Offline</h3>
-          <p className="text-muted-foreground mb-6 max-w-sm">{error}</p>
-          <div className="flex gap-3">
-            <button onClick={handleRetry} className="btn-secondary">
-              <RefreshCw className="w-4 h-4" />
-              Retry
-            </button>
-            <button onClick={onNext} className="btn-primary">
-              <SkipForward className="w-4 h-4" />
-              Next Channel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Error Overlay - Removed */}
 
       {/* Controls Overlay */}
       <div
