@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { IPTVChannel, UserPreferences } from '../types';
 import { fetchAndParseM3U } from '../services/m3uParser';
 import { StorageService } from '../services/storageService';
 import { KeyboardService } from '../services/keyboardService';
 import ChannelGallery from '../components/ChannelGallery';
-import VideoPlayer from '../components/VideoPlayer';
-import SettingsPanel from '../components/SettingsPanel';
-import KeyboardShortcuts from '../components/KeyboardShortcuts';
-import MiniPlayer from '../components/MiniPlayer';
 import { Loader2, AlertCircle, Tv, RefreshCw } from 'lucide-react';
+
+const VideoPlayer = lazy(() => import('../components/VideoPlayer'));
+const SettingsPanel = lazy(() => import('../components/SettingsPanel'));
+const KeyboardShortcuts = lazy(() => import('../components/KeyboardShortcuts'));
+const MiniPlayer = lazy(() => import('../components/MiniPlayer'));
 
 const M3U_URL = 'https://iptv-org.github.io/iptv/index.m3u';
 
@@ -259,41 +260,49 @@ const Index: React.FC = () => {
         />
       ) : viewMode === 'player' ? (
         <div className="h-full w-full flex flex-col relative bg-black">
-          <VideoPlayer
-            channel={currentChannel}
-            nextChannelName={nextChannelName || undefined}
-            isFavorite={currentChannel ? favorites.has(currentChannel.id) : false}
-            onToggleFavorite={currentChannel ? () => toggleFavorite(currentChannel.id) : () => {}}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            onMinimize={handleMinimizePlayer}
-            onExit={() => setViewMode('gallery')}
-            onShowKeyboard={() => setShowKeyboardShortcuts(true)}
-          />
+          <Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+            <VideoPlayer
+              channel={currentChannel}
+              nextChannelName={nextChannelName || undefined}
+              isFavorite={currentChannel ? favorites.has(currentChannel.id) : false}
+              onToggleFavorite={currentChannel ? () => toggleFavorite(currentChannel.id) : () => {}}
+              onNext={handleNext}
+              onPrevious={handlePrevious}
+              onMinimize={handleMinimizePlayer}
+              onExit={() => setViewMode('gallery')}
+              onShowKeyboard={() => setShowKeyboardShortcuts(true)}
+            />
+          </Suspense>
         </div>
       ) : null}
 
-      <MiniPlayer
-        channel={currentChannel}
-        isVisible={viewMode === 'mini'}
-        onClose={handleCloseMiniPlayer}
-        onMaximize={handleMaximizePlayer}
-        position={miniPlayerPosition}
-        onPositionChange={setMiniPlayerPosition}
-      />
+      <Suspense fallback={null}>
+        <MiniPlayer
+          channel={currentChannel}
+          isVisible={viewMode === 'mini'}
+          onClose={handleCloseMiniPlayer}
+          onMaximize={handleMaximizePlayer}
+          position={miniPlayerPosition}
+          onPositionChange={setMiniPlayerPosition}
+        />
+      </Suspense>
 
-      <SettingsPanel
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-        preferences={preferences}
-        onPreferencesChange={handlePreferencesChange}
-      />
+      <Suspense fallback={null}>
+        <SettingsPanel
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+          preferences={preferences}
+          onPreferencesChange={handlePreferencesChange}
+        />
+      </Suspense>
 
-      <KeyboardShortcuts
-        isOpen={showKeyboardShortcuts}
-        onClose={() => setShowKeyboardShortcuts(false)}
-        shortcuts={keyboardService.getShortcuts()}
-      />
+      <Suspense fallback={null}>
+        <KeyboardShortcuts
+          isOpen={showKeyboardShortcuts}
+          onClose={() => setShowKeyboardShortcuts(false)}
+          shortcuts={keyboardService.getShortcuts()}
+        />
+      </Suspense>
     </div>
   );
 };
