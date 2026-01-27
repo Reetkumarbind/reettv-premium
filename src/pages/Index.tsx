@@ -11,7 +11,7 @@ const SettingsPanel = lazy(() => import('../components/SettingsPanel'));
 const KeyboardShortcuts = lazy(() => import('../components/KeyboardShortcuts'));
 const MiniPlayer = lazy(() => import('../components/MiniPlayer'));
 
-const M3U_URL = 'https://iptv-org.github.io/iptv/index.m3u';
+const M3U_URL = 'https://iptv-org.github.io/iptv/countries/in.m3u';
 
 type ViewMode = 'gallery' | 'player' | 'mini';
 
