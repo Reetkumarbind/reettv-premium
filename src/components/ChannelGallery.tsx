@@ -1,7 +1,14 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Heart, Grid3X3, List, RefreshCw, Tv, Filter, X, ArrowUp, Loader2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { Search, Heart, Grid3X3, List, RefreshCw, Tv, Filter, X, ArrowUp, Loader2, Mic, MicOff } from 'lucide-react';
 import { IPTVChannel } from '../types';
 import ChannelCard from './ChannelCard';
+
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
 
 interface ChannelGalleryProps {
   channels: IPTVChannel[];
@@ -29,7 +36,41 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [displayCount, setDisplayCount] = useState(20);
+  const [isListening, setIsListening] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const supportsVoice = typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) as boolean;
+
+  const toggleVoiceSearch = useCallback(() => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
+    if (!supportsVoice) return;
+
+    const SpeechRecognitionCtor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognitionCtor();
+    recognition.lang = 'en-IN';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    recognition.onresult = (event: any) => {
+      const transcript = Array.from(event.results as SpeechRecognitionResultList)
+        .map((r: any) => r[0].transcript)
+        .join('');
+      setSearchQuery(transcript);
+    };
+
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  }, [isListening, supportsVoice]);
 
   // Get unique groups with channel counts and show top 10
   const groups = useMemo(() => {
@@ -179,16 +220,31 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
                   placeholder="Search channels..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
+                  className={`w-full pl-10 ${supportsVoice ? 'pr-20' : 'pr-10'} py-2.5 rounded-xl bg-muted/50 border ${isListening ? 'border-accent ring-2 ring-accent/30' : 'border-border/50'} text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all`}
                 />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg hover:bg-muted transition-colors"
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                )}
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="p-1 rounded-lg hover:bg-muted transition-colors"
+                    >
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
+                  )}
+                  {supportsVoice && (
+                    <button
+                      onClick={toggleVoiceSearch}
+                      className={`p-1.5 rounded-lg transition-all ${
+                        isListening
+                          ? 'bg-accent/20 text-accent animate-pulse'
+                          : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                      }`}
+                      title={isListening ? 'Stop listening' : 'Voice search'}
+                    >
+                      {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
