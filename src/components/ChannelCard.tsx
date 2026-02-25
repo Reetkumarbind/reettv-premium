@@ -29,12 +29,12 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
       style={{ animationDelay: `${index * 30}ms` }}
     >
       {/* Logo Container */}
-      <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-muted mb-2.5 group">
+      <div className="relative aspect-square rounded-xl overflow-hidden bg-muted mb-2.5 group flex items-center justify-center">
         {channel.logo ? (
           <img
             src={channel.logo}
             alt={channel.name}
-            className="channel-logo w-full h-full object-cover transition-transform duration-500"
+            className="channel-logo w-full h-full object-contain p-3 transition-transform duration-500"
             loading="lazy"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
