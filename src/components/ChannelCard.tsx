@@ -1,5 +1,5 @@
-import React from 'react';
-import { Heart, Play, Tv } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Play } from 'lucide-react';
 import { IPTVChannel } from '../types';
 
 interface ChannelCardProps {
@@ -10,6 +10,29 @@ interface ChannelCardProps {
   index: number;
 }
 
+const GRADIENT_COLORS = [
+  'from-primary/40 to-secondary/40',
+  'from-secondary/40 to-accent/40',
+  'from-accent/40 to-primary/40',
+  'from-primary/30 to-accent/30',
+  'from-secondary/30 to-primary/30',
+];
+
+function getInitials(name: string): string {
+  return name
+    .split(/[\s\-_]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0]?.toUpperCase())
+    .join('');
+}
+
+function getGradient(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return GRADIENT_COLORS[Math.abs(hash) % GRADIENT_COLORS.length];
+}
+
 const ChannelCard: React.FC<ChannelCardProps> = ({
   channel,
   isFavorite,
@@ -17,6 +40,9 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
   onToggleFavorite,
   index,
 }) => {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showFallback = !channel.logo || imgFailed;
+
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleFavorite();
@@ -30,21 +56,22 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
     >
       {/* Logo Container */}
       <div className="relative aspect-square rounded-xl overflow-hidden bg-muted mb-2.5 group flex items-center justify-center">
-        {channel.logo ? (
+        {!showFallback && (
           <img
             src={channel.logo}
             alt={channel.name}
             className="channel-logo w-full h-full object-contain p-3 transition-transform duration-500"
             loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-            }}
+            onError={() => setImgFailed(true)}
           />
-        ) : null}
-        <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20 ${channel.logo ? 'hidden' : ''}`}>
-          <Tv className="w-8 h-8 text-muted-foreground" />
-        </div>
+        )}
+        {showFallback && (
+          <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br ${getGradient(channel.name)}`}>
+            <span className="text-xl font-black text-foreground/80 select-none">
+              {getInitials(channel.name)}
+            </span>
+          </div>
+        )}
         
         {/* Play Overlay */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
