@@ -93,7 +93,12 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
 
   // Filter and sort channels
   const filteredChannels = useMemo(() => {
-    let result = channels;
+    // Only show Hindi, Bhojpuri, and English channels
+    const allowedLanguages = ['hindi', 'bhojpuri', 'english'];
+    let result = channels.filter(c => {
+      const lang = c.language?.toLowerCase() || '';
+      return allowedLanguages.some(al => lang.includes(al));
+    });
 
     // Search filter
     if (searchQuery) {
