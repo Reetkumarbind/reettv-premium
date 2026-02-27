@@ -33,6 +33,13 @@ function getGradient(name: string): string {
   return GRADIENT_COLORS[Math.abs(hash) % GRADIENT_COLORS.length];
 }
 
+function getLogoSearchUrl(name: string): string {
+  // Try to find a logo using Google's favicon service or a logo API
+  const cleanName = name.replace(/\s*(HD|SD|FHD|UHD|4K|\+)\s*/gi, '').trim();
+  const domain = cleanName.toLowerCase().replace(/\s+/g, '') + '.com';
+  return `https://logo.clearbit.com/${domain}`;
+}
+
 const ChannelCard: React.FC<ChannelCardProps> = ({
   channel,
   isFavorite,
@@ -41,7 +48,10 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
   index,
 }) => {
   const [imgFailed, setImgFailed] = useState(false);
-  const showFallback = !channel.logo || imgFailed;
+  const [lookupFailed, setLookupFailed] = useState(false);
+  const showOriginal = channel.logo && !imgFailed;
+  const showLookup = !showOriginal && !lookupFailed;
+  const showFallback = !showOriginal && lookupFailed;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -56,13 +66,22 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
     >
       {/* Logo Container */}
       <div className="relative aspect-square rounded-xl overflow-hidden bg-muted mb-2.5 group flex items-center justify-center">
-        {!showFallback && (
+        {showOriginal && (
           <img
             src={channel.logo}
             alt={channel.name}
             className="channel-logo w-full h-full object-contain p-3 transition-transform duration-500"
             loading="lazy"
             onError={() => setImgFailed(true)}
+          />
+        )}
+        {showLookup && (
+          <img
+            src={getLogoSearchUrl(channel.name)}
+            alt={channel.name}
+            className="channel-logo w-full h-full object-contain p-3 transition-transform duration-500"
+            loading="lazy"
+            onError={() => setLookupFailed(true)}
           />
         )}
         {showFallback && (
