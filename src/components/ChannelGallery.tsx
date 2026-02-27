@@ -93,7 +93,13 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
 
   // Filter and sort channels
   const filteredChannels = useMemo(() => {
-    let result = channels;
+    const allowedLanguages = ['hindi', 'bhojpuri', 'english'];
+    // Filter by allowed languages first - include channels with matching language or no language tag
+    let result = channels.filter(c => {
+      const lang = c.language?.toLowerCase().trim();
+      if (!lang) return true; // keep channels with no language metadata
+      return allowedLanguages.some(al => lang.includes(al));
+    });
 
     // Search filter
     if (searchQuery) {
