@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from 'react';
 import { IPTVChannel, UserPreferences } from '../types';
 import { fetchAndParseM3U } from '../services/m3uParser';
 import { StorageService } from '../services/storageService';
+import { ChannelHealthService } from '../services/channelHealthService';
 import { KeyboardService } from '../services/keyboardService';
 import ChannelGallery from '../components/ChannelGallery';
 import { Loader2, AlertCircle, Tv, RefreshCw } from 'lucide-react';
@@ -17,6 +18,7 @@ type ViewMode = 'gallery' | 'player' | 'mini';
 
 const Index: React.FC = () => {
   const [channels, setChannels] = useState<IPTVChannel[]>([]);
+  const [healthyIds, setHealthyIds] = useState<Set<string> | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,40 +31,81 @@ const Index: React.FC = () => {
   const [keyboardService] = useState(() => new KeyboardService());
   const [miniPlayerPosition, setMiniPlayerPosition] = useState({ x: 20, y: 20 });
   const [refreshKey, setRefreshKey] = useState(0);
+  const healthCheckRunning = useRef(false);
 
   useEffect(() => {
     const initApp = async () => {
       try {
-        console.log('Starting to load channels');
         setIsLoading(true);
         setError(null);
 
         const savedFavorites = StorageService.getFavorites();
         setFavorites(new Set(savedFavorites));
 
+        // 1. Try loading from cache for instant startup
+        const cached = ChannelHealthService.getCachedChannels();
+        if (cached && cached.length > 0) {
+          const healthy = ChannelHealthService.filterHealthyChannels(cached);
+          setChannels(healthy);
+          setIsLoading(false);
+        }
+
+        // 2. Fetch fresh list in background
         const data = await fetchAndParseM3U(M3U_URL);
-        console.log('Loaded channels:', data.length);
         const validChannels = data.filter(channel =>
           channel.url && channel.name && channel.id
         );
-        console.log('Valid channels:', validChannels.length);
 
-        setChannels(validChannels);
+        // Cache for next startup
+        ChannelHealthService.cacheChannels(validChannels);
+
+        // Show healthy channels from cache filter immediately
+        const healthFiltered = ChannelHealthService.filterHealthyChannels(validChannels);
+        setChannels(healthFiltered);
         setIsLoading(false);
+
+        // 3. Run background health check
+        if (!healthCheckRunning.current) {
+          healthCheckRunning.current = true;
+          ChannelHealthService.checkChannelsBatch(
+            validChannels,
+            (newHealthyIds) => {
+              setHealthyIds(new Set(newHealthyIds));
+            },
+            8
+          ).finally(() => {
+            healthCheckRunning.current = false;
+          });
+        }
       } catch (err) {
         console.error('Error loading channels:', err);
-        setError(err instanceof Error ? err.message : 'Connection failed');
+        // If we already have cached channels showing, don't show error
+        if (channels.length === 0) {
+          setError(err instanceof Error ? err.message : 'Connection failed');
+        }
         setIsLoading(false);
       }
     };
     initApp();
   }, [refreshKey]);
 
+  // When health check updates, re-filter channels
+  useEffect(() => {
+    if (healthyIds === null) return;
+    setChannels(prev => {
+      // Get full list from cache to re-filter
+      const cached = ChannelHealthService.getCachedChannels();
+      if (!cached) return prev;
+      const valid = cached.filter(ch => ch.url && ch.name && ch.id);
+      return valid.filter(ch => healthyIds.has(ch.id));
+    });
+  }, [healthyIds]);
+
   const handleRefresh = useCallback(() => {
+    // Clear health cache to force re-check
+    localStorage.removeItem('iptv_channel_health_v2');
     setRefreshKey(prev => prev + 1);
   }, []);
-
-
 
   useEffect(() => {
     return () => {
