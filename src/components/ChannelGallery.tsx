@@ -35,7 +35,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [displayCount, setDisplayCount] = useState(20);
+  const [displayCount, setDisplayCount] = useState(100);
   const [isListening, setIsListening] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -167,7 +167,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
 
   // Reset display count when filters change
   useEffect(() => {
-    setDisplayCount(20);
+    setDisplayCount(100);
   }, [searchQuery, selectedGroup, showFavoritesOnly, sortBy]);
 
   const handleRefresh = async () => {
@@ -361,7 +361,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
           <>
             <div className={`grid gap-4 sm:gap-6 ${
               viewMode === 'grid'
-                ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'
+                ? 'grid-cols-5 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-10'
                 : 'grid-cols-1'
             }`}>
               {displayedChannels.map((channel, index) => (
