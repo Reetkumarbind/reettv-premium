@@ -37,6 +37,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [displayCount, setDisplayCount] = useState(100);
   const [isListening, setIsListening] = useState(false);
+  const [activeLanguages, setActiveLanguages] = useState<Set<string>>(new Set(['hindi', 'bhojpuri', 'english']));
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -93,12 +94,11 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
 
   // Filter and sort channels
   const filteredChannels = useMemo(() => {
-    const allowedLanguages = ['hindi', 'bhojpuri', 'english'];
-    // Filter by allowed languages first - include channels with matching language or no language tag
+    // Filter by active languages - include channels with matching language or no language tag
     let result = channels.filter(c => {
       const lang = c.language?.toLowerCase().trim();
-      if (!lang) return true; // keep channels with no language metadata
-      return allowedLanguages.some(al => lang.includes(al));
+      if (!lang) return true;
+      return Array.from(activeLanguages).some(al => lang.includes(al));
     });
 
     // Search filter
@@ -134,7 +134,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
     });
 
     return result;
-  }, [channels, searchQuery, selectedGroup, showFavoritesOnly, sortBy, favorites]);
+  }, [channels, searchQuery, selectedGroup, showFavoritesOnly, sortBy, favorites, activeLanguages]);
 
   // Scroll detection for "scroll to top" button
   useEffect(() => {
@@ -275,6 +275,33 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
 
           {/* Filters Bar */}
           <div className="flex items-center gap-3 pb-4 overflow-x-auto scrollbar-thin">
+            {/* Language Toggle Buttons */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {['Hindi', 'Bhojpuri', 'English'].map((lang) => {
+                const isActive = activeLanguages.has(lang.toLowerCase());
+                return (
+                  <button
+                    key={lang}
+                    onClick={() => {
+                      setActiveLanguages(prev => {
+                        const next = new Set(prev);
+                        if (isActive) next.delete(lang.toLowerCase());
+                        else next.add(lang.toLowerCase());
+                        return next;
+                      });
+                    }}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
+                      isActive
+                        ? 'bg-accent text-accent-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {lang}
+                  </button>
+                );
+              })}
+              <div className="w-px h-6 bg-border/50 mx-1" />
+            </div>
             {/* Group Filter - Top 10 Categories */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {groups.map((group) => (
