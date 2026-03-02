@@ -17,31 +17,47 @@ export async function fetchAndParseM3U(url: string): Promise<IPTVChannel[]> {
 }
 
 function parseM3U(content: string): IPTVChannel[] {
-  const lines = content.split('\n');
   const channels: IPTVChannel[] = [];
   
-  let currentChannel: Partial<IPTVChannel> = {};
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+  // Optimized parsing: avoid split for huge files, use indexOf-based scanning
+  let pos = 0;
+  const len = content.length;
+  let currentChannel: Partial<IPTVChannel> | null = null;
+
+  // Pre-compiled regex patterns for speed
+  const logoRe = /tvg-logo="([^"]*)"/;
+  const groupRe = /group-title="([^"]*)"/;
+  const langRe = /tvg-language="([^"]*)"/;
+  const countryRe = /tvg-country="([^"]*)"/;
+  const nameRe = /,([^,]+)$/;
+
+  while (pos < len) {
+    // Find end of line
+    let eol = content.indexOf('\n', pos);
+    if (eol === -1) eol = len;
     
-    if (line.startsWith('#EXTINF:')) {
-      // Parse channel info
-      const logoMatch = line.match(/tvg-logo="([^"]*)"/);
-      const groupMatch = line.match(/group-title="([^"]*)"/);
-      const languageMatch = line.match(/tvg-language="([^"]*)"/);
-      const countryMatch = line.match(/tvg-country="([^"]*)"/);
-      const nameMatch = line.match(/,(.+)$/);
-      
-      currentChannel = {
-        logo: logoMatch?.[1] || '',
-        group: groupMatch?.[1] || 'General',
-        language: languageMatch?.[1] || '',
-        country: countryMatch?.[1] || '',
-        name: nameMatch?.[1]?.trim() || 'Unknown Channel',
-      };
-    } else if (line && !line.startsWith('#') && currentChannel.name) {
-      // This is the URL line
+    // Trim line
+    let start = pos;
+    let end = eol;
+    while (start < end && (content[start] === ' ' || content[start] === '\r' || content[start] === '\t')) start++;
+    while (end > start && (content[end - 1] === ' ' || content[end - 1] === '\r' || content[end - 1] === '\t')) end--;
+    
+    const line = content.substring(start, end);
+    pos = eol + 1;
+
+    if (line.length === 0) continue;
+
+    if (line.charCodeAt(0) === 35) { // '#'
+      if (line.startsWith('#EXTINF:')) {
+        currentChannel = {
+          logo: logoRe.exec(line)?.[1] || '',
+          group: groupRe.exec(line)?.[1] || 'General',
+          language: langRe.exec(line)?.[1] || '',
+          country: countryRe.exec(line)?.[1] || '',
+          name: nameRe.exec(line)?.[1]?.trim() || 'Unknown Channel',
+        };
+      }
+    } else if (currentChannel?.name) {
       channels.push({
         id: generateId(currentChannel.name, line),
         name: currentChannel.name,
@@ -51,7 +67,7 @@ function parseM3U(content: string): IPTVChannel[] {
         language: currentChannel.language,
         country: currentChannel.country,
       });
-      currentChannel = {};
+      currentChannel = null;
     }
   }
   

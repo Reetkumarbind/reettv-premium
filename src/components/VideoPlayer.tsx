@@ -80,18 +80,32 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: false,
-          maxLoadingDelay: 4,
-          maxBufferLength: 60,
-          maxMaxBufferLength: 120,
-          manifestLoadingTimeOut: 10000,
-          manifestLoadingMaxRetry: 3,
-          levelLoadingTimeOut: 10000,
-          fragLoadingTimeOut: 20000,
-          startLevel: -1, // Start with highest quality
+          // Adaptive bitrate: start auto, let ABR pick optimal level
+          startLevel: -1,
           autoStartLoad: true,
-          capLevelToPlayerSize: false, // Don't limit quality based on player size
-          maxBufferSize: 60 * 1000 * 1000, // 60MB buffer
+          capLevelToPlayerSize: true, // Match quality to player size
+          // Intelligent buffering for low bandwidth
+          maxLoadingDelay: 4,
+          maxBufferLength: 30, // 30s forward buffer (saves memory)
+          maxMaxBufferLength: 60, // Max 60s on good connections
+          backBufferLength: 15, // Keep 15s back buffer
+          maxBufferSize: 30 * 1000 * 1000, // 30MB max buffer
           maxBufferHole: 0.5,
+          // Fast manifest/segment loading with retries
+          manifestLoadingTimeOut: 8000,
+          manifestLoadingMaxRetry: 3,
+          manifestLoadingRetryDelay: 500,
+          levelLoadingTimeOut: 8000,
+          levelLoadingMaxRetry: 3,
+          fragLoadingTimeOut: 15000,
+          fragLoadingMaxRetry: 4,
+          fragLoadingRetryDelay: 500,
+          // ABR tuning for smooth switching
+          abrEwmaDefaultEstimate: 500000, // 500kbps initial estimate
+          abrBandWidthFactor: 0.95,
+          abrBandWidthUpFactor: 0.7,
+          // Hardware acceleration hint
+          progressive: true,
         });
 
         hlsRef.current = hls;
@@ -101,11 +115,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
           setIsLoading(false);
           setRetryCount(0);
-          // Force highest quality level
-          if (hls.levels.length > 0) {
-            hls.currentLevel = hls.levels.length - 1; // Select highest quality
-          }
-          // Only attempt to play if not already playing
+          // Let ABR handle quality selection automatically
+          hls.currentLevel = -1; // Auto
           if (video.paused) {
             video.play().catch((error) => {
               if (error.name !== 'AbortError') {

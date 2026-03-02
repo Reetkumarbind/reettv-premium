@@ -306,6 +306,7 @@ const toggleFavorite = useCallback((channelId: string) => {
           onSelect={handleSelectChannel}
           onToggleFavorite={toggleFavorite}
           onRefresh={handleRefresh}
+          isLoading={isLoading}
         />
       ) : viewMode === 'player' ? (
         <div className="h-full w-full flex flex-col relative bg-black">
