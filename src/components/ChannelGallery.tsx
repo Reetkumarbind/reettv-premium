@@ -275,33 +275,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
 
           {/* Filters Bar */}
           <div className="flex items-center gap-3 pb-4 overflow-x-auto scrollbar-thin">
-            {/* Language Toggle Buttons */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {['Hindi', 'Bhojpuri', 'English'].map((lang) => {
-                const isActive = activeLanguages.has(lang.toLowerCase());
-                return (
-                  <button
-                    key={lang}
-                    onClick={() => {
-                      setActiveLanguages(prev => {
-                        const next = new Set(prev);
-                        if (isActive) next.delete(lang.toLowerCase());
-                        else next.add(lang.toLowerCase());
-                        return next;
-                      });
-                    }}
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
-                      isActive
-                        ? 'bg-accent text-accent-foreground'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    {lang}
-                  </button>
-                );
-              })}
-              <div className="w-px h-6 bg-border/50 mx-1" />
-            </div>
+            {/* Group Filter - Categories */}
             {/* Group Filter - Top 10 Categories */}
             <div className="flex items-center gap-2 flex-shrink-0">
               {groups.map((group) => (
@@ -394,7 +368,7 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = ({
           <>
             <div className={`grid gap-4 sm:gap-6 ${
               viewMode === 'grid'
-                ? 'grid-cols-5 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-10'
+                ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-8'
                 : 'grid-cols-1'
             }`}>
               {displayedChannels.map((channel, index) => (
