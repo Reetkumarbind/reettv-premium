@@ -34,10 +34,9 @@ function getGradient(name: string): string {
 }
 
 function getLogoSearchUrl(name: string): string {
-  // Try to find a logo using Google's favicon service or a logo API
   const cleanName = name.replace(/\s*(HD|SD|FHD|UHD|4K|\+)\s*/gi, '').trim();
   const domain = cleanName.toLowerCase().replace(/\s+/g, '') + '.com';
-  return `https://logo.clearbit.com/${domain}`;
+  return `https://img.logo.dev/${domain}?token=pk_anonymous&size=120&format=png`;
 }
 
 const ChannelCard: React.FC<ChannelCardProps> = ({
@@ -61,7 +60,7 @@ const ChannelCard: React.FC<ChannelCardProps> = ({
   return (
     <div
       onClick={onSelect}
-      className="channel-card p-2.5 cursor-pointer animate-fade-in"
+      className="channel-card p-3 cursor-pointer animate-fade-in"
       style={{ animationDelay: `${index * 30}ms` }}
     >
       {/* Logo Container */}
