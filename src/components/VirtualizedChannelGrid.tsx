@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useMemo, useRef, useEffect, useState } from 'react';
+// @ts-ignore - react-window types
 import { FixedSizeGrid as Grid } from 'react-window';
 import { IPTVChannel } from '../types';
 import ChannelCard from './ChannelCard';
