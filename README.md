@@ -1,4 +1,4 @@
-# Welcome to your Live TV project
+# Welcome to REET TV  project
 
 ## Project info
 
