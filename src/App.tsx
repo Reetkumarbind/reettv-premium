@@ -6,12 +6,16 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
+import { registerServiceWorker } from "@/services/serviceWorkerService";
 import { PrivateRoute, PublicRoute } from "@/components/auth/PrivateRoute";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const LoginPage = lazy(() => import("./pages/auth/LoginPage").then(m => ({ default: m.LoginPage })));
 const SignupPage = lazy(() => import("./pages/auth/SignupPage").then(m => ({ default: m.SignupPage })));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 
 const queryClient = new QueryClient();
 
@@ -53,25 +57,33 @@ const AppContent = () => {
       }
     });
 
+    // Register service worker for PWA support
+    registerServiceWorker();
+
     return () => {
       subscription?.unsubscribe();
     };
   }, [setLoading, setUser]);
 
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        {/* Auth Routes */}
-        <Route path="/auth/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-        <Route path="/auth/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+    <>
+      <NotificationCenter />
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          {/* Auth Routes */}
+          <Route path="/auth/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+          <Route path="/auth/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
 
-        {/* Protected Routes */}
-        <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
+          {/* Protected Routes */}
+          <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
+          <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+          <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
 
-        {/* Catch-all */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+          {/* Catch-all */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 };
 
