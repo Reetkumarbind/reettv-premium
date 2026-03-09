@@ -39,6 +39,7 @@ const Index: React.FC = () => {
   const [miniPlayerPosition, setMiniPlayerPosition] = useState({ x: 20, y: 20 });
   const [refreshKey, setRefreshKey] = useState(0);
   const healthCheckRunning = useRef(false);
+  const healthCheckAbortRef = useRef<AbortController | null>(null);
 
   // Swipe to navigate between views
   const navigateView = useCallback((direction: 'left' | 'right') => {
@@ -98,11 +99,26 @@ const Index: React.FC = () => {
 
         if (!healthCheckRunning.current) {
           healthCheckRunning.current = true;
+          // Cancel any previous health check
+          if (healthCheckAbortRef.current) {
+            healthCheckAbortRef.current.abort();
+          }
+          healthCheckAbortRef.current = new AbortController();
+          const abortSignal = healthCheckAbortRef.current.signal;
+          
           ChannelHealthService.checkChannelsBatch(
             validChannels,
-            (newHealthyIds) => setHealthyIds(new Set(newHealthyIds)),
+            (newHealthyIds) => {
+              if (!abortSignal.aborted) {
+                setHealthyIds(new Set(newHealthyIds));
+              }
+            },
             8
-          ).finally(() => { healthCheckRunning.current = false; });
+          ).finally(() => { 
+            if (!abortSignal.aborted) {
+              healthCheckRunning.current = false;
+            }
+          });
         }
       } catch (err) {
         console.error('Error loading channels:', err);
@@ -129,7 +145,15 @@ const Index: React.FC = () => {
     setRefreshKey(prev => prev + 1);
   }, []);
 
-  useEffect(() => { return () => keyboardService.destroy(); }, [keyboardService]);
+  useEffect(() => { 
+    return () => {
+      keyboardService.destroy();
+      // Cancel health check on unmount
+      if (healthCheckAbortRef.current) {
+        healthCheckAbortRef.current.abort();
+      }
+    };
+  }, [keyboardService]);
   useEffect(() => { StorageService.saveFavorites(Array.from(favorites)); }, [favorites]);
 
   const handlePreferencesChange = (newPreferences: UserPreferences) => {

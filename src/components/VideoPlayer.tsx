@@ -130,11 +130,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (data.fatal) {
             if (retryCount < 3) {
               setRetryCount((prev) => prev + 1);
-              hls.destroy();
+              if (hlsRef.current === hls) {
+                hls.destroy();
+                hlsRef.current = null;
+              }
               setTimeout(loadStream, 2000);
             } else {
               setError('Stream unavailable. Try another channel.');
               setIsLoading(false);
+              if (hlsRef.current === hls) {
+                hls.destroy();
+                hlsRef.current = null;
+              }
             }
           }
         });
@@ -306,7 +313,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Error Overlay - Removed */}
+      {/* Error Overlay */}
+      {error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="relative mb-6">
+            <AlertCircle className="w-16 h-16 text-destructive" />
+          </div>
+          <p className="text-white font-semibold text-center max-w-xs">{error}</p>
+          <button
+            onClick={handleRetry}
+            className="mt-4 px-6 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Controls Overlay */}
       <div
