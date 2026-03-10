@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { IPTVChannel } from '@/types';
-import { supabase } from './authService';
+import { supabase } from '@/integrations/supabase/client';
 import { useChannelStore } from '@/store/channelStore';
 import { useAuthStore } from '@/store/authStore';
 

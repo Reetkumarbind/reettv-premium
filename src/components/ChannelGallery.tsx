@@ -138,20 +138,20 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = memo(({
     }
   }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     await onRefresh();
     setTimeout(() => setIsRefreshing(false), 1000);
-  };
+  }, [onRefresh]);
 
   const handleChannelSelect = useCallback((channel: IPTVChannel) => {
     const index = channels.findIndex(c => c.id === channel.id);
     if (index !== -1) onSelect(index);
   }, [channels, onSelect]);
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
   const showCategoryView = activeView === 'home' && categoryRows && !debouncedSearch && selectedGroup === 'all';
   const showCategoriesGrid = activeView === 'categories';

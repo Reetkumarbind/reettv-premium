@@ -78,6 +78,7 @@ export class ChannelHealthService {
     const records = this.getHealthRecords();
     const healthCheckTTL = 2 * 60 * 60 * 1000;
     const healthyIds = new Set<string>();
+    let lastUpdateHealthyIds: Set<string> | null = null;
 
     // Identify channels that need checking
     const toCheck = channels.filter(ch => {
@@ -89,8 +90,20 @@ export class ChannelHealthService {
       return true;
     });
 
-    // Initially report known-healthy channels
-    onUpdate(healthyIds);
+    // Helper function to check if Sets have same content
+    const setsEqual = (a: Set<string>, b: Set<string>): boolean => {
+      if (a.size !== b.size) return false;
+      for (const id of a) {
+        if (!b.has(id)) return false;
+      }
+      return true;
+    };
+
+    // Initially report known-healthy channels (only if there are any)
+    if (healthyIds.size > 0) {
+      onUpdate(healthyIds);
+      lastUpdateHealthyIds = new Set(healthyIds);
+    }
 
     // Process in batches
     for (let i = 0; i < toCheck.length; i += batchSize) {
@@ -107,11 +120,16 @@ export class ChannelHealthService {
       });
 
       this.saveHealthRecords(records);
-      onUpdate(new Set(healthyIds));
+      
+      // Only call onUpdate if there are actually new healthy channels
+      if (!lastUpdateHealthyIds || !setsEqual(healthyIds, lastUpdateHealthyIds)) {
+        onUpdate(new Set(healthyIds));
+        lastUpdateHealthyIds = new Set(healthyIds);
+      }
 
       // Small delay between batches to avoid flooding
       if (i + batchSize < toCheck.length) {
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 500)); // Increased delay to 500ms for better batching
       }
     }
   }

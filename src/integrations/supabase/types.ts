@@ -14,7 +14,207 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analytics_events: {
+        Row: {
+          id: string
+          user_id: string | null
+          event_type: string
+          event_data: Json
+          channel_id: string | null
+          duration_seconds: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          event_type: string
+          event_data?: Json
+          channel_id?: string | null
+          duration_seconds?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          event_type?: string
+          event_data?: Json
+          channel_id?: string | null
+          duration_seconds?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      favorites: {
+        Row: {
+          id: string
+          user_id: string
+          channel_id: string
+          channel_name: string | null
+          channel_logo_url: string | null
+          added_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          channel_id: string
+          channel_name?: string | null
+          channel_logo_url?: string | null
+          added_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          channel_id?: string
+          channel_name?: string | null
+          channel_logo_url?: string | null
+          added_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          message: string
+          type: string
+          read: boolean
+          action_url: string | null
+          created_at: string
+          expires_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          message: string
+          type: string
+          read?: boolean
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          message?: string
+          type?: string
+          read?: boolean
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          id: string
+          email: string
+          username: string
+          avatar_url: string | null
+          bio: string | null
+          watch_time_minutes: number
+          favorite_count: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          username: string
+          avatar_url?: string | null
+          bio?: string | null
+          watch_time_minutes?: number
+          favorite_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          username?: string
+          avatar_url?: string | null
+          bio?: string | null
+          watch_time_minutes?: number
+          favorite_count?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          id: string
+          user_id: string
+          theme: string
+          autoplay: boolean
+          quality: string
+          volume: number
+          notifications_enabled: boolean
+          keyboard_shortcuts: boolean
+          default_language: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          theme?: string
+          autoplay?: boolean
+          quality?: string
+          volume?: number
+          notifications_enabled?: boolean
+          keyboard_shortcuts?: boolean
+          default_language?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          theme?: string
+          autoplay?: boolean
+          quality?: string
+          volume?: number
+          notifications_enabled?: boolean
+          keyboard_shortcuts?: boolean
+          default_language?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      watch_history: {
+        Row: {
+          id: string
+          user_id: string
+          channel_id: string
+          channel_name: string | null
+          watched_at: string
+          duration_seconds: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          channel_id: string
+          channel_name?: string | null
+          watched_at?: string
+          duration_seconds?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          channel_id?: string
+          channel_name?: string | null
+          watched_at?: string
+          duration_seconds?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -3,26 +3,98 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="REET TV - Premium IPTV streaming service offering live TV channels, on-demand content, and personalized recommendations. Watch your favorite shows and movies anytime, anywhere." />
+    <meta name="keywords" content="IPTV, live TV, streaming, channels, on-demand, premium content, television" />
+    <meta name="author" content="REET Kumar Bind" />
+    <meta name="theme-color" content="#1f2937" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>RKB LIVE TV</title>
-    <meta name="description" content="REET-TV">
-    <meta name="author" content="reet kumar bind" />
-
-    <!-- TODO: Update og:title to match your application name -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/favicon.svg">
     
+    <!-- Preload critical resources for faster load -->
+    <link rel="preload" as="script" href="/src/main.tsx">
+    <link rel="prefetch" href="/src/pages/Index.tsx">
     
+    <!-- DNS prefetch and preconnect for external resources -->
+    <link rel="dns-prefetch" href="//supabase.co">
+    <link rel="preconnect" href="//supabase.co" crossorigin>
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://reettv.com" />
+    
+    <!-- Sitemap -->
+    <link rel="sitemap" href="/sitemap.xml" type="application/xml" />
+    
+    <!-- Page Title -->
+    <title>REET TV - Premium IPTV Streaming Service | Watch Live TV Online</title>
+    
+    <!-- Open Graph Meta Tags for social sharing -->
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/82e90d0a-7a2f-44e5-bcbe-802a9910dfcc?Expires=1772033810&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=m2iz3wHTe1SVHtmWwrulZkaM1wvsCpkwm6smNMlU4ECeaI9aE0kg71QGxvS563ipYX2LZlfidbE8EcegEx8NSdiXAD7oCF5FZEc9LU7KnAoK4lrs6aLGjTd83WEFLaotBUn18kG8C9fW9LToU%2F8ENKVZHWiaOhNSME6hUuhe%2BPUB385Hb1wV%2FpxeFLVVyRYKRywbMAK7uZ7KyobJ0kNDScWDQWtlUFzDMo7VyXonKTOhHJ%2FvIJCHcDplUgGgBZjjtyvC7AkH9yefYcDW7w0hXKgDGaMFDNofsx%2BWC754xHJmr0ptBZ7nxRGBwu960K4Jp%2B%2BuRKoF4xIiLRLcDy9mbQ%3D%3D">
+    <meta property="og:title" content="REET TV - Premium IPTV Streaming Service" />
+    <meta property="og:description" content="Stream live TV channels, on-demand content, and more with REET TV. Your favorite entertainment anytime, anywhere." />
+    <meta property="og:url" content="https://reettv.com" />
+    <meta property="og:site_name" content="REET TV" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:image" content="https://reettv.com/favicon.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
+    <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@reetmeena" />
-    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/82e90d0a-7a2f-44e5-bcbe-802a9910dfcc?Expires=1772033810&amp;GoogleAccessId=go-api-on-aws%40gpt-engineer-390607.iam.gserviceaccount.com&amp;Signature=m2iz3wHTe1SVHtmWwrulZkaM1wvsCpkwm6smNMlU4ECeaI9aE0kg71QGxvS563ipYX2LZlfidbE8EcegEx8NSdiXAD7oCF5FZEc9LU7KnAoK4lrs6aLGjTd83WEFLaotBUn18kG8C9fW9LToU%2F8ENKVZHWiaOhNSME6hUuhe%2BPUB385Hb1wV%2FpxeFLVVyRYKRywbMAK7uZ7KyobJ0kNDScWDQWtlUFzDMo7VyXonKTOhHJ%2FvIJCHcDplUgGgBZjjtyvC7AkH9yefYcDW7w0hXKgDGaMFDNofsx%2BWC754xHJmr0ptBZ7nxRGBwu960K4Jp%2B%2BuRKoF4xIiLRLcDy9mbQ%3D%3D">
-    <meta property="og:title" content="RKB LIVE TV">
-  <meta name="twitter:title" content="RKB LIVE TV">
-  <meta property="og:description" content="REET-TV">
-  <meta name="twitter:description" content="REET-TV">
-</head>
+    <meta name="twitter:title" content="REET TV - Premium IPTV Streaming" />
+    <meta name="twitter:description" content="Watch live TV channels and on-demand content with REET TV." />
+    <meta name="twitter:image" content="https://reettv.com/favicon.svg" />
+    <meta name="twitter:creator" content="@reetmeena" />
+
+    <!-- Additional SEO Tags -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="bingbot" content="index, follow" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="rating" content="general" />
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "REET TV",
+        "url": "https://reettv.com",
+        "description": "Premium IPTV streaming service offering live TV channels, on-demand content, and personalized recommendations",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://reettv.com?search={search_term_string}"
+          },
+          "query_input": "required name=search_term_string"
+        }
+      }
+    </script>
+
+    <!-- Organization Schema -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "REET TV",
+        "url": "https://reettv.com",
+        "logo": "https://reettv.com/favicon.svg",
+        "description": "Premium IPTV streaming service with live TV channels",
+        "sameAs": ["https://twitter.com/reetmeena"],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "contactType": "Customer Support",
+          "email": "support@reettv.com"
+        }
+      }
+    </script>
+  </head>
 
   <body>
     <div id="root"></div>

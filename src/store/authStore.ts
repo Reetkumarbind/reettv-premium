@@ -25,20 +25,27 @@ export interface AuthState {
   clearError: () => void;
 }
 
+const guestUser: User = {
+  id: 'local-guest',
+  email: 'guest@reet.tv',
+  username: 'Guest User',
+  created_at: new Date(0).toISOString(),
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user: null,
+      user: guestUser,
       session: null,
       isLoading: false,
-      isAuthenticated: false,
+      isAuthenticated: true,
       error: null,
 
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       setSession: (session) => set({ session }),
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
-      logout: () => set({ user: null, session: null, isAuthenticated: false }),
+      logout: () => set({ user: guestUser, session: null, isAuthenticated: true, error: null }),
       clearError: () => set({ error: null }),
     }),
     {

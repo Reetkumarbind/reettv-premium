@@ -6,8 +6,9 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
-    port: 8080,
+    host: "0.0.0.0",
+    port: 3000,
+    strictPort: true,
     hmr: {
       overlay: false,
     },
@@ -19,14 +20,37 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    chunkSizeWarningLimit: 600000,
+    target: 'ES2020',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+        manualChunks: (id) => {
+          // Core vendor chunk
+          if (id.includes('node_modules/react')) {
+            return 'react-core';
+          }
+          // Router chunk
+          if (id.includes('react-router-dom')) {
+            return 'router';
+          }
+          // Query chunk
+          if (id.includes('@tanstack/react-query')) {
+            return 'query';
+          }
+          // UI components - split into smaller chunks to enable partial loading
+          if (id.includes('@radix-ui')) {
+            return 'ui-radix';
+          }
+          if (id.includes('lucide-react')) {
+            return 'icons';
+          }
+          // Utilities
+          if (id.includes('recharts') || id.includes('date-fns') || id.includes('zod')) {
+            return 'utils';
+          }
         },
       },
     },
+    chunkSizeWarningLimit: 300,
   },
 }));

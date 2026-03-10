@@ -4,6 +4,7 @@ import { fetchAndParseM3U } from '../services/m3uParser';
 import { StorageService } from '../services/storageService';
 import { ChannelHealthService } from '../services/channelHealthService';
 import { KeyboardService } from '../services/keyboardService';
+import { useSEO } from '../hooks/useSEO';
 import ChannelGallery from '../components/ChannelGallery';
 import AppSidebar, { SidebarView } from '../components/AppSidebar';
 import BottomNavBar from '../components/BottomNavBar';
@@ -72,6 +73,21 @@ const Index: React.FC = () => {
     document.documentElement.classList.add('dark');
   }, []);
 
+  // SEO Hook - Update meta tags based on current view
+  useSEO({
+    title: sidebarView === 'favorites' 
+      ? 'My Favorites' 
+      : sidebarView === 'categories' 
+      ? 'Categories' 
+      : sidebarView === 'trending' 
+      ? 'Trending' 
+      : 'Home',
+    description: 'Stream live TV channels, on-demand content, and more with REET TV. Your favorite entertainment anytime, anywhere with our premium IPTV service.',
+    keywords: ['IPTV', 'live TV', 'streaming', 'channels', 'on-demand', 'premium content'],
+    url: window.location.href,
+    type: 'website',
+  });
+
   useEffect(() => {
     const initApp = async () => {
       try {
@@ -133,15 +149,25 @@ const Index: React.FC = () => {
 
   useEffect(() => {
     if (healthyIds === null) return;
-    setChannels(() => {
-      const cached = ChannelHealthService.getCachedChannels();
-      if (!cached) return [];
-      return cached.filter(ch => ch.url && ch.name && ch.id && healthyIds.has(ch.id));
-    });
+    // Debounce the channel update to batch multiple health check updates
+    const timeoutId = setTimeout(() => {
+      setChannels(() => {
+        const cached = ChannelHealthService.getCachedChannels();
+        if (!cached) return [];
+        return cached.filter(ch => ch.url && ch.name && ch.id && healthyIds.has(ch.id));
+      });
+    }, 500); // Batch updates every 500ms to prevent UI thrashing
+    return () => clearTimeout(timeoutId);
   }, [healthyIds]);
 
   const handleRefresh = useCallback(() => {
     localStorage.removeItem('iptv_channel_health_v2');
+    setError(null);
+    setRefreshKey(prev => prev + 1);
+  }, []);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
     setRefreshKey(prev => prev + 1);
   }, []);
 
@@ -203,16 +229,43 @@ const Index: React.FC = () => {
   const handleNext = useCallback(() => { if (channels.length === 0) return; setCurrentIndex((prev) => (prev + 1) % channels.length); }, [channels.length]);
   const handlePrevious = useCallback(() => { if (channels.length === 0) return; setCurrentIndex((prev) => (prev - 1 + channels.length) % channels.length); }, [channels.length]);
 
-  const handleSelectChannel = (index: number) => { setCurrentIndex(index); setViewMode('player'); };
-  const handleMinimizePlayer = () => setViewMode('mini');
-  const handleMaximizePlayer = () => setViewMode('player');
-  const handleCloseMiniPlayer = () => setViewMode('gallery');
+  const handleSelectChannel = useCallback((index: number) => { 
+    setCurrentIndex(index); 
+    setViewMode('player'); 
+  }, []);
+  
+  const handleMinimizePlayer = useCallback(() => setViewMode('mini'), []);
+  const handleMaximizePlayer = useCallback(() => setViewMode('player'), []);
+  const handleCloseMiniPlayer = useCallback(() => setViewMode('gallery'), []);
+  const handleExitPlayer = useCallback(() => setViewMode('gallery'), []);
+  const handleShowKeyboard = useCallback(() => setShowKeyboardShortcuts(true), []);
 
-  const currentChannel = useMemo(() => currentIndex >= 0 ? channels[currentIndex] : null, [channels, currentIndex]);
+  // Use useRef to track current channel without triggering re-renders on every channels array change
+  const currentChannelRef = useRef<IPTVChannel | null>(null);
+  const prevChannelIdRef = useRef<string | null>(null);
+  
+  useEffect(() => {
+    if (currentIndex >= 0 && currentIndex < channels.length) {
+      const newChannel = channels[currentIndex];
+      if (prevChannelIdRef.current !== newChannel.id) {
+        currentChannelRef.current = newChannel;
+        prevChannelIdRef.current = newChannel.id;
+      }
+    }
+  }, [currentIndex, channels]);
+
+  const currentChannel = currentChannelRef.current;
   const nextChannelName = useMemo(() => {
     if (channels.length === 0 || currentIndex < 0) return null;
     return channels[(currentIndex + 1) % channels.length].name;
   }, [channels, currentIndex]);
+
+  // Memoize callbacks for VideoPlayer to prevent re-renders
+  const handleToggleFavorite = useCallback(() => {
+    if (currentChannel) {
+      toggleFavorite(currentChannel.id);
+    }
+  }, [currentChannel?.id, toggleFavorite]);
 
   // Transition class for page content
   const transitionClass = transitionDir === 'left'
@@ -223,18 +276,18 @@ const Index: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-background relative overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-primary/5 blur-[100px] rounded-full" />
-        <div className="relative flex flex-col items-center gap-6">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background relative overflow-hidden p-4 md:p-0">
+        <div className="absolute top-1/4 left-1/4 w-48 md:w-64 h-48 md:h-64 bg-primary/5 blur-[100px] rounded-full" />
+        <div className="relative flex flex-col items-center gap-4 md:gap-6">
           <div className="relative">
-            <Loader2 className="w-14 h-14 text-primary animate-spin" strokeWidth={1.5} />
+            <Loader2 className="w-10 md:w-14 h-10 md:h-14 text-primary animate-spin-slow" strokeWidth={1.5} />
             <div className="absolute inset-0 flex items-center justify-center">
-              <Tv className="w-5 h-5 text-foreground animate-pulse" />
+              <Tv className="w-4 md:w-5 h-4 md:h-5 text-foreground animate-pulse" />
             </div>
           </div>
-          <div className="text-center space-y-1.5">
-            <h2 className="text-xl font-black tracking-wider text-foreground uppercase">REET TV</h2>
-            <p className="text-muted-foreground text-xs font-medium uppercase tracking-widest">Loading streams...</p>
+          <div className="text-center space-y-1 md:space-y-1.5">
+            <h2 className="text-lg md:text-xl font-black tracking-wider text-foreground uppercase">REET TV</h2>
+            <p className="text-muted-foreground text-xs md:text-sm font-medium uppercase tracking-widest">Loading streams...</p>
           </div>
         </div>
       </div>
@@ -243,13 +296,16 @@ const Index: React.FC = () => {
 
   if (error) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-background p-4 text-center">
-        <div className="w-14 h-14 bg-destructive/10 rounded-2xl flex items-center justify-center mb-6">
-          <AlertCircle className="w-7 h-7 text-destructive" />
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background p-4 md:p-6 text-center">
+        <div className="w-12 md:w-14 h-12 md:h-14 bg-destructive/10 rounded-2xl flex items-center justify-center mb-4 md:mb-6">
+          <AlertCircle className="w-6 md:w-7 h-6 md:h-7 text-destructive" />
         </div>
-        <h2 className="text-xl font-black text-foreground uppercase tracking-tight mb-2">Connection Failed</h2>
-        <p className="text-muted-foreground mb-6 max-w-sm text-sm">{error}</p>
-        <button onClick={() => window.location.reload()} className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors flex items-center gap-2">
+        <h2 className="text-lg md:text-xl font-black text-foreground uppercase tracking-tight mb-2">Connection Failed</h2>
+        <p className="text-muted-foreground mb-6 max-w-sm text-xs md:text-sm">{error}</p>
+        <button 
+          onClick={handleRetry} 
+          className="px-4 md:px-5 py-2 md:py-2.5 rounded-lg bg-primary text-primary-foreground font-medium text-xs md:text-sm hover:bg-primary/90 transition-colors flex items-center gap-2 min-h-[44px] md:min-h-auto justify-center"
+        >
           <RefreshCw className="w-4 h-4" />
           Retry
         </button>
@@ -259,16 +315,14 @@ const Index: React.FC = () => {
 
   return (
     <div className="h-screen w-full overflow-hidden bg-background text-foreground flex">
-      {/* Desktop sidebar - hidden on mobile */}
-      <div className="hidden lg:block flex-shrink-0">
-        <AppSidebar
-          activeView={sidebarView}
-          onViewChange={handleViewChange}
-          onOpenSettings={() => setShowSettings(true)}
-          onOpenShortcuts={() => setShowKeyboardShortcuts(true)}
-          favoritesCount={favorites.size}
-        />
-      </div>
+      {/* Mobile sidebar - hidden for all devices */}
+      {/* <AppSidebar
+        activeView={sidebarView}
+        onViewChange={handleViewChange}
+        onOpenSettings={() => setShowSettings(true)}
+        onOpenShortcuts={() => setShowKeyboardShortcuts(true)}
+        favoritesCount={favorites.size}
+      /> */}
 
       {/* Main content */}
       <div
@@ -276,7 +330,7 @@ const Index: React.FC = () => {
         {...swipeHandlers}
       >
         {viewMode === 'gallery' ? (
-          <div className={`h-full w-full pb-16 lg:pb-0 ${transitionClass}`} key={sidebarView}>
+          <div className={`h-full w-full pb-14 xs:pb-16 md:pb-0 pt-12 xs:pt-0 md:pt-0 ${transitionClass}`} key={sidebarView}>
             <ChannelGallery
               channels={channels}
               favorites={favorites}
@@ -289,17 +343,17 @@ const Index: React.FC = () => {
           </div>
         ) : viewMode === 'player' ? (
           <div className="h-full w-full flex flex-col relative bg-black animate-fade-in">
-            <Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>}>
+            <Suspense fallback={<div className="h-full w-full flex items-center justify-center"><Loader2 className="w-6 md:w-8 h-6 md:h-8 animate-spin-slow text-primary" /></div>}>
               <VideoPlayer
                 channel={currentChannel}
                 nextChannelName={nextChannelName || undefined}
                 isFavorite={currentChannel ? favorites.has(currentChannel.id) : false}
-                onToggleFavorite={currentChannel ? () => toggleFavorite(currentChannel.id) : () => {}}
+                onToggleFavorite={handleToggleFavorite}
                 onNext={handleNext}
                 onPrevious={handlePrevious}
                 onMinimize={handleMinimizePlayer}
-                onExit={() => setViewMode('gallery')}
-                onShowKeyboard={() => setShowKeyboardShortcuts(true)}
+                onExit={handleExitPlayer}
+                onShowKeyboard={handleShowKeyboard}
               />
             </Suspense>
           </div>
@@ -308,12 +362,14 @@ const Index: React.FC = () => {
 
       {/* Bottom nav - mobile only, hidden when playing */}
       {viewMode === 'gallery' && (
-        <BottomNavBar
-          activeView={sidebarView}
-          onViewChange={handleViewChange}
-          onOpenSettings={() => setShowSettings(true)}
-          favoritesCount={favorites.size}
-        />
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-40">
+          <BottomNavBar
+            activeView={sidebarView}
+            onViewChange={handleViewChange}
+            onOpenSettings={() => setShowSettings(true)}
+            favoritesCount={favorites.size}
+          />
+        </div>
       )}
 
       <Suspense fallback={null}>

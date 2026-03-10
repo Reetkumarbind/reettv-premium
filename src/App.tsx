@@ -1,85 +1,55 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
-import { useAuthStore } from "@/store/authStore";
-import { authService } from "@/services/authService";
 import { registerServiceWorker } from "@/services/serviceWorkerService";
-import { PrivateRoute, PublicRoute } from "@/components/auth/PrivateRoute";
 import { NotificationCenter } from "@/components/NotificationCenter";
 
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const LoginPage = lazy(() => import("./pages/auth/LoginPage").then(m => ({ default: m.LoginPage })));
-const SignupPage = lazy(() => import("./pages/auth/SignupPage").then(m => ({ default: m.SignupPage })));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 
-const queryClient = new QueryClient();
+// Lazy load UI providers to defer non-critical imports
+const UIProviders = lazy(() => import("./components/UIProviders"));
 
-// Loading fallback component
+// Configure QueryClient for optimal performance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+// Minimal loading fallback for faster perceived performance
 const LoadingFallback = () => (
   <div className="flex items-center justify-center min-h-screen bg-background">
-    <div className="animate-pulse">
-      <div className="h-12 w-12 rounded-full bg-primary/50"></div>
-    </div>
+    <div className="h-12 w-12 rounded-full bg-primary/50 animate-pulse"></div>
   </div>
 );
 
 // Main app content
 const AppContent = () => {
-  const { setLoading, setUser } = useAuthStore();
-
   useEffect(() => {
-    // Initialize auth state from session
-    const initAuth = async () => {
-      setLoading(true);
-      try {
-        const user = await authService.getCurrentUser();
-        if (user) {
-          setUser(user);
-        }
-      } catch (error) {
-        console.error("Failed to initialize auth:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
-
-    // Subscribe to auth changes
-    const subscription = authService.onAuthStateChange((user) => {
-      if (user) {
-        setUser(user);
-      }
-    });
-
     // Register service worker for PWA support
     registerServiceWorker();
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [setLoading, setUser]);
+  }, []);
 
   return (
     <>
       <NotificationCenter />
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          {/* Auth Routes */}
-          <Route path="/auth/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-          <Route path="/auth/signup" element={<PublicRoute><SignupPage /></PublicRoute>} />
+          <Route path="/auth/login" element={<Navigate to="/" replace />} />
+          <Route path="/auth/signup" element={<Navigate to="/" replace />} />
+          <Route path="/auth/callback" element={<Navigate to="/" replace />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
 
-          {/* Protected Routes */}
-          <Route path="/" element={<PrivateRoute><Index /></PrivateRoute>} />
-          <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-          <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-
-          {/* Catch-all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
@@ -89,18 +59,18 @@ const AppContent = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true,
-        }}
-      >
-        <AppContent />
-      </BrowserRouter>
-    </TooltipProvider>
+    <Suspense fallback={<LoadingFallback />}>
+      <UIProviders>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <AppContent />
+        </BrowserRouter>
+      </UIProviders>
+    </Suspense>
   </QueryClientProvider>
 );
 

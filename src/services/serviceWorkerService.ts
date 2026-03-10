@@ -5,6 +5,12 @@ export const registerServiceWorker = async () => {
     return;
   }
 
+  if (import.meta.env.DEV) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+    return;
+  }
+
   try {
     const registration = await navigator.serviceWorker.register('/service-worker.js', {
       scope: '/',

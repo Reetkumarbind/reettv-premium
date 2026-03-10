@@ -48,7 +48,7 @@ const ChannelCard: React.FC<ChannelCardProps> = memo(({
   return (
     <div
       onClick={onSelect}
-      className="group relative rounded-2xl overflow-hidden cursor-pointer bg-card border border-border/20 hover:border-primary/30 transition-all duration-300 active:scale-[0.97] hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10"
+      className="group relative rounded-2xl overflow-hidden cursor-pointer bg-card border border-border/20 hover:border-primary/30 transition-all duration-300 active:scale-[0.97] hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 hover:animate-glow"
       style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
       {/* Thumbnail / Logo area */}
@@ -84,7 +84,7 @@ const ChannelCard: React.FC<ChannelCardProps> = memo(({
 
         {/* Play overlay */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-primary/90 backdrop-blur-sm flex items-center justify-center transform scale-75 group-hover:scale-100 transition-transform duration-300 shadow-lg">
+          <div className="w-12 h-12 rounded-full bg-primary/90 backdrop-blur-sm flex items-center justify-center transform scale-75 group-hover:scale-100 group-hover:animate-pop transition-transform duration-300 shadow-lg">
             <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
           </div>
         </div>
@@ -100,7 +100,7 @@ const ChannelCard: React.FC<ChannelCardProps> = memo(({
         {/* Favorite */}
         <button
           onClick={handleFavoriteClick}
-          className="absolute top-2.5 right-2.5 p-2 rounded-full bg-black/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-black/50 active:scale-90"
+          className={`absolute top-2.5 right-2.5 p-2 rounded-full bg-black/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-black/50 active:scale-90 ${isFavorite ? 'animate-heartbeat' : ''}`}
         >
           <Heart className={`w-4 h-4 transition-colors ${isFavorite ? 'text-red-400 fill-red-400' : 'text-white/80'}`} />
         </button>

@@ -4,29 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
-import { authService } from '@/services/authService';
 import { useState } from 'react';
-import { User, Mail, LogOut, Settings } from 'lucide-react';
+import { User, Mail, Settings, Tv } from 'lucide-react';
 
 export const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user, logout, setError } = useAuthStore();
+  const { user } = useAuthStore();
   const { favorites, watchHistory } = useChannelStore();
-  const [isLoading, setIsLoading] = useState(false);
   const [username, setUsername] = useState(user?.username || '');
-
-  const handleLogout = async () => {
-    setIsLoading(true);
-    try {
-      await authService.signOut();
-      logout();
-      navigate('/auth/login');
-    } catch (error: any) {
-      setError(error.message || 'Failed to logout');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const watchTimeMinutes = watchHistory.reduce((total, item) => total + (item.duration / 60), 0);
   const avgSessionMinutes = watchHistory.length > 0 ? watchTimeMinutes / watchHistory.length : 0;
@@ -57,14 +42,9 @@ export const ProfilePage = () => {
                 Edit Profile
               </Button>
 
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={handleLogout}
-                disabled={isLoading}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                {isLoading ? 'Logging out...' : 'Logout'}
+              <Button variant="default" className="w-full" onClick={() => navigate('/')}>
+                <Tv className="w-4 h-4 mr-2" />
+                Open Live TV
               </Button>
             </CardContent>
           </Card>

@@ -1,8 +1,10 @@
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Bingbot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Twitterbot
 Allow: /
@@ -12,3 +14,14 @@ Allow: /
 
 User-agent: *
 Allow: /
+Crawl-delay: 2
+
+# Disallow crawling of auth routes
+Disallow: /auth/
+
+# Disallow crawling of internal API calls
+Disallow: /*.json$
+
+# Sitemap location
+Sitemap: https://reettv.com/sitemap.xml
+

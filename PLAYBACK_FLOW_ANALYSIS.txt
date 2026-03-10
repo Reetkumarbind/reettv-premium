@@ -1,0 +1,255 @@
+# Video Playback Flow Analysis - Channel Selection → Video Restart
+
+## CRITICAL FINDING: Why Videos Stop/Restart When Clicking Channels
+
+The issue stems from a **dependency tracking problem in VideoPlayer's main useEffect hook**.
+
+---
+
+## 1. CLICK HANDLER CHAIN
+
+### User Clicks ChannelCard → ChannelGallery → Index.tsx
+
+**ChannelCard.tsx (Line 50):**
+- onClick={onSelect} triggers callback
+
+**ChannelGallery.tsx (Lines 147-150):**
+- handleChannelSelect finds index and passes it up
+
+**Index.tsx (Lines 231-235):**
+- handleSelectChannel updates setCurrentIndex(index) and setViewMode('player')
+- This is the KEY STATE CHANGE
+
+---
+
+## 2. CURRENT CHANNEL RESOLUTION FLOW
+
+**Index.tsx (Lines 251-258):**
+- currentChannelRef.useRef created to track channel without re-renders
+- useEffect dependency: [currentIndex, channels]
+- When currentIndex changes, currentChannelRef.current = channels[currentIndex]
+- currentChannel prop read from ref
+
+**VideoPlayer receives:**
+- channel={currentChannel} prop passed down
+- This reference change triggers the HLS effect
+
+---
+
+## 3. VIDEOPLAYER HLS LOADING - THE PROBLEM ⚠️
+
+**VideoPlayer.tsx (Lines 64-232):**
+
+DEPENDENCY ARRAY: }, [channel?.url]);
+- This triggers WHENEVER channel.url changes
+
+IMMEDIATE STATE RESETS (Lines 70-73):
+- setIsLoading(true)
+- setShowLoadingOverlay(true)
+- setError(null)
+- setRetryCount(0)
+
+STREAM CLEANUP (Lines 86-92):
+- hlsRef.current.destroy()     ← HLS DESTROYED
+- video.pause()                ← VIDEO PAUSED/STOPPED HERE ⚠️
+
+TIMEOUT SETUP (Lines 202-214):
+- overlayTimeoutRef: 8s timeout to hide loading overlay
+- loadTimeoutRef: 30s timeout to show "stream taking too long" error
+
+NEW HLS INSTANCE (Lines 101-131):
+- New Hls() object created with configuration
+- hls.loadSource(channel.url)  ← NEW STREAM LOADED
+- hls.attachMedia(video)
+
+PLAYBACK RESUME (Lines 132-148):
+- Waits for Hls.Events.MANIFEST_PARSED
+- setIsLoading(false)
+- video.play()                 ← VIDEO RESTARTS HERE ⚠️
+
+---
+
+## 4. ALL PLACES WHERE VIDEO STATE RESETS
+
+| When | What Resets | Effect |
+|------|------------|--------|
+| Channel URL changes | isLoading, showLoadingOverlay, error, retryCount | Loading spinner appears |
+| Channel URL changes | hlsRef destroyed | Stream stops |
+| Channel URL changes | video.pause() | **VIDEO STOPS PLAYING** |
+| Channel URL changes | loadTimeoutRef, overlayTimeoutRef | New timeouts set |
+| MANIFEST_PARSED | HLS quality level | Auto-select quality |
+| Every channel select | video.play() | **VIDEO RESTARTS** |
+| Manual retry | Loading states reset | Full reload |
+
+---
+
+## 5. COMPLETE CLICK-TO-PLAYBACK TIMELINE
+
+0ms     User clicks ChannelCard
+10ms    onClick={onSelect} triggered
+20ms    handleChannelSelect called with new index
+30ms    setCurrentIndex(newIndex) ← STATE UPDATES HERE
+40ms    setViewMode('player')
+50ms    currentChannelRef updated
+60ms    VideoPlayer receives new channel prop
+70ms    useEffect dependency [channel?.url] detected change ← EFFECT FIRES
+80ms    setIsLoading(true) & setShowLoadingOverlay(true)
+100ms   hlsRef.destroy() executes
+110ms   video.pause() ← VIDEO STOPS ⚠️
+120ms   New Hls() instance created
+150ms   hls.loadSource(channel.url)
+200ms   hls.attachMedia(video)
+500ms+  Buffering/Loading playlist manifest
+2000ms  Retry logic (2 retries max, 2s delay each)
+4000ms+ MANIFEST_PARSED event fires
+4100ms  setIsLoading(false)
+4200ms  video.play() ← VIDEO RESTARTS ⚠️
+8000ms  overlayTimeoutRef fires, loading overlay hidden
+
+USER PERCEIVES: "Video stopped for ~100-4000ms then restarted"
+
+---
+
+## 6. ROOT CAUSE ANALYSIS
+
+PRIMARY ISSUE:
+- useEffect dependency [channel?.url] triggers full reload on ANY channel change
+- video.pause() is called immediately (line 92)
+- Complete HLS destruction causes playback interrupt
+- User sees 100-8000ms loading delay depending on stream
+
+SECONDARY ISSUES:
+- Retry logic adds 2s-4s per failed attempt (2 retries max)
+- 30s timeout error if stream doesn't load
+- Health check filtering (Index.tsx:150-161) may change channels array
+- Every array change might update currentChannelRef reference
+
+---
+
+## 7. HOW CHANNEL CHANGES PROPAGATE
+
+Index.tsx:
+  setCurrentIndex(index) 
+    ↓ triggers
+  useEffect [currentIndex, channels] at line 252-256
+    ↓ updates
+  currentChannelRef.current = channels[currentIndex]
+    ↓ new reference passed to
+  VideoPlayer channel={currentChannel}
+    ↓ dependency [channel?.url] detects change
+    ↓ triggers
+  VideoPlayer.tsx useEffect at line 65
+    ↓ executes reset logic
+    ↓ video.pause() STOPS VIDEO
+
+---
+
+## 8. EXACT DEPENDENCY TRACKING
+
+VideoPlayer.tsx Line 232:
+  }, [channel?.url]);
+
+This means effect re-runs when:
+- channel becomes non-null (from null)
+- channel.url changes to different URL
+- channel object reference changes but url is same ← POTENTIAL ISSUE
+
+This causes unnecessary resets if channel reference changed but URL identical.
+
+---
+
+## 9. FLOW DIAGRAM
+
+Click Channel Card
+        ↓
+onClick={onSelect}
+        ↓
+handleChannelSelect(channel)
+        ↓
+onSelect(index)
+        ↓
+Index.tsx.handleSelectChannel(index)
+        ↓
+setCurrentIndex(index)
+setViewMode('player')
+        ↓
+Index.tsx useEffect [currentIndex, channels] fires
+        ↓
+currentChannelRef.current = channels[currentIndex]
+        ↓
+VideoPlayer receives new channel prop
+        ↓
+VideoPlayer useEffect [channel?.url] detects change ← KEY
+        ↓
+┌──────────────────────────────────┐
+│ RESET PHASE (Lines 70-92)        │
+│ - setIsLoading(true)             │
+│ - setShowLoadingOverlay(true)    │
+│ - setError(null)                 │
+│ - hlsRef.destroy()               │
+│ - video.pause() ← STOPS HERE     │
+└──────────────────────────────────┘
+        ↓
+┌──────────────────────────────────┐
+│ LOADING PHASE (Lines 101-131)    │
+│ - New Hls() instance             │
+│ - hls.loadSource(url)            │
+│ - hls.attachMedia(video)         │
+│ - Wait for MANIFEST_PARSED       │
+└──────────────────────────────────┘
+        ↓
+MANIFEST_PARSED event
+        ↓
+┌──────────────────────────────────┐
+│ RESUME PHASE (Lines 141-147)     │
+│ - setIsLoading(false)            │
+│ - video.play() ← RESTARTS HERE   │
+└──────────────────────────────────┘
+        ↓
+Video Playing
+
+---
+
+## 10. KEY CODE LOCATIONS
+
+File: src/components/ChannelCard.tsx
+- Line 50: onClick={onSelect}
+
+File: src/components/ChannelGallery.tsx
+- Lines 147-150: handleChannelSelect callback
+- Line 307: onSelect={() => handleChannelSelect(channel)}
+
+File: src/pages/Index.tsx
+- Lines 231-235: handleSelectChannel (setCurrentIndex)
+- Lines 251-258: currentChannelRef and useEffect
+- Line 342: VideoPlayer channel={currentChannel} prop
+
+File: src/components/VideoPlayer.tsx
+- Line 232: }, [channel?.url]); ← DEPENDENCY
+- Lines 70-73: State resets
+- Lines 86-92: HLS cleanup & video.pause()
+- Lines 132-148: MANIFEST_PARSED & video.play()
+
+File: src/store/playbackStore.ts
+- Line 39: setCurrentChannel resets currentTime: 0
+
+---
+
+## 11. WHY IT FEELS LIKE "STOP/RESTART"
+
+Immediate perception:
+1. Click new channel
+2. Loading overlay appears (from setShowLoadingOverlay)
+3. Video pauses (from video.pause at line 92)
+4. Visual freeze for 100ms-8s depending on stream load
+5. Video auto-plays when manifest loads
+6. User sees: Stop → Loading → Restart
+
+Actual technical process:
+- Old HLS destroyed
+- New HLS created
+- New manifest downloaded
+- New stream buffered
+- Video resumed
+
+This is BY DESIGN for reliability, but creates jarring UX perception.

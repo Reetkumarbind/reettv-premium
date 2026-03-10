@@ -11,13 +11,37 @@ interface VirtualizedChannelGridProps {
 
 const CARD_HEIGHT = 220;
 const GAP = 16;
+const GAP_MOBILE = 12;
 const OVERSCAN = 5;
 
 function getColumnCount(width: number): number {
-  if (width >= 1280) return 8;
-  if (width >= 1024) return 6;
-  if (width >= 640) return 4;
-  return 3;
+  // TV and ultra-wide: 6-8 columns
+  if (width >= 2560) return 8;
+  if (width >= 1920) return 7;
+  // Desktop: 6 columns
+  if (width >= 1440) return 6;
+  // Laptop: 4-5 columns
+  if (width >= 1024) return 5;
+  // Tablet: 3-4 columns
+  if (width >= 768) return 4;
+  // Mobile landscape: 3 columns
+  if (width >= 640) return 3;
+  // Mobile portrait: 2 columns
+  if (width >= 480) return 2;
+  // Small phones: 1 column
+  return 1;
+}
+
+function getCardHeight(width: number): number {
+  if (width >= 1440) return 220;
+  if (width >= 768) return 200;
+  if (width >= 480) return 180;
+  return 160;
+}
+
+function getGap(width: number): number {
+  if (width >= 768) return GAP;
+  return GAP_MOBILE;
 }
 
 const VirtualizedChannelGrid: React.FC<VirtualizedChannelGridProps> = memo(({
@@ -57,7 +81,9 @@ const VirtualizedChannelGrid: React.FC<VirtualizedChannelGridProps> = memo(({
   }, []);
 
   const columnCount = getColumnCount(containerWidth);
-  const rowHeight = CARD_HEIGHT + GAP;
+  const cardHeight = getCardHeight(containerWidth);
+  const gap = getGap(containerWidth);
+  const rowHeight = cardHeight + gap;
   const rowCount = Math.ceil(channels.length / columnCount);
   const totalHeight = rowCount * rowHeight;
 
@@ -76,9 +102,9 @@ const VirtualizedChannelGrid: React.FC<VirtualizedChannelGridProps> = memo(({
           style={{
             position: 'absolute',
             top: row * rowHeight,
-            left: `calc(${(col / columnCount) * 100}% + ${col > 0 ? GAP / 2 : 0}px)`,
-            width: `calc(${100 / columnCount}% - ${GAP}px)`,
-            height: CARD_HEIGHT,
+            left: `calc(${(col / columnCount) * 100}% + ${col > 0 ? gap / 2 : 0}px)`,
+            width: `calc(${100 / columnCount}% - ${gap}px)`,
+            height: cardHeight,
           }}
         >
           <ChannelCard
@@ -97,7 +123,7 @@ const VirtualizedChannelGrid: React.FC<VirtualizedChannelGridProps> = memo(({
     <div
       ref={containerRef}
       className="w-full overflow-y-auto scrollbar-thin"
-      style={{ height: Math.min(totalHeight + GAP, window.innerHeight - 280) }}
+      style={{ height: Math.min(totalHeight + gap, window.innerHeight - 280) }}
     >
       <div style={{ position: 'relative', height: totalHeight, width: '100%' }}>
         {visibleItems}
