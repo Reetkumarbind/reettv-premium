@@ -151,10 +151,14 @@ const Index: React.FC = () => {
     if (healthyIds === null) return;
     // Debounce the channel update to batch multiple health check updates
     const timeoutId = setTimeout(() => {
-      setChannels(() => {
-        const cached = ChannelHealthService.getCachedChannels();
-        if (!cached) return [];
-        return cached.filter(ch => ch.url && ch.name && ch.id && healthyIds.has(ch.id));
+      setChannels((prevChannels) => {
+        // Sort channels with healthy ones first, but keep ALL channels available
+        const sorted = [...prevChannels].sort((a, b) => {
+          const aHealthy = healthyIds.has(a.id) ? 0 : 1;
+          const bHealthy = healthyIds.has(b.id) ? 0 : 1;
+          return aHealthy - bHealthy;
+        });
+        return sorted;
       });
     }, 500); // Batch updates every 500ms to prevent UI thrashing
     return () => clearTimeout(timeoutId);
