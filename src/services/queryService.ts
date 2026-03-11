@@ -193,7 +193,7 @@ export const useRemoveFavorite = () => {
     mutationFn: async (channelId: string) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
+       const { error } = await db
         .from('favorites')
         .delete()
         .eq('user_id', user.id)
