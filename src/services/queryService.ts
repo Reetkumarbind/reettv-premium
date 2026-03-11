@@ -121,7 +121,7 @@ export const useFetchUserPreferences = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return null;
       
-      const { data, error } = await supabase
+       const { data, error } = await db
         .from('user_preferences')
         .select('*')
         .eq('user_id', userId)
