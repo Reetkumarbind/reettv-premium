@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>REET TV Lite</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#e5e5e5;font-family:-apple-system,BlinkMacSystemFont,sans-serif;overflow-x:hidden}
+.header{position:sticky;top:0;z-index:10;background:#111;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #222}
+.logo{font-size:18px;font-weight:900;letter-spacing:1px;color:#fff}
+.logo span{color:#e11d48}
+#search{flex:1;max-width:400px;padding:8px 14px;border-radius:20px;border:1px solid #333;background:#1a1a1a;color:#fff;font-size:14px;outline:none}
+#search:focus{border-color:#e11d48}
+#status{font-size:12px;color:#888;margin-left:auto;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;padding:12px 16px}
+.card{background:#1a1a1a;border-radius:8px;padding:14px 12px;cursor:pointer;border:2px solid transparent;transition:border-color .15s,background .15s;outline:none;text-align:left}
+.card:hover,.card:focus,.card.focused{border-color:#e11d48;background:#1e1e1e}
+.card-name{font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-group{font-size:11px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-live{display:inline-block;font-size:9px;background:#e11d48;color:#fff;padding:1px 6px;border-radius:4px;margin-bottom:6px;font-weight:700}
+.player-overlay{position:fixed;inset:0;z-index:100;background:#000;display:none;flex-direction:column}
+.player-overlay.active{display:flex}
+.player-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#111}
+.btn{padding:8px 16px;border-radius:6px;border:none;background:#e11d48;color:#fff;font-size:13px;font-weight:600;cursor:pointer;outline:none;min-height:44px;min-width:44px}
+.btn:hover,.btn:focus{opacity:.85}
+.btn-back{background:#333}
+.ch-name{font-size:15px;font-weight:700;color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#video{flex:1;width:100%;background:#000}
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;color:#888;font-size:14px}
+.error-box{text-align:center;padding:60px 20px;color:#888}
+.error-box h2{color:#fff;margin-bottom:8px}
+.nav-hint{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#222;padding:6px 14px;border-radius:16px;font-size:11px;color:#888;z-index:50;pointer-events:none}
+@media(max-width:500px){.grid{grid-template-columns:repeat(2,1fr);gap:8px;padding:8px}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">REET <span>TV</span></div>
+  <input id="search" type="text" placeholder="Search channels..." autocomplete="off">
+  <div id="status">Loading...</div>
+</div>
+<div id="grid" class="grid"></div>
+<div id="player" class="player-overlay">
+  <div class="player-bar">
+    <button class="btn btn-back" id="backBtn" tabindex="0">← Back</button>
+    <div class="ch-name" id="playerName"></div>
+    <button class="btn" id="prevBtn" tabindex="0">◀ Prev</button>
+    <button class="btn" id="nextBtn" tabindex="0">Next ▶</button>
+  </div>
+  <video id="video" controls autoplay playsinline></video>
+</div>
+<div class="nav-hint" id="navHint">Use ←↑↓→ arrows to navigate • Enter to play</div>
+
+<script>
+(function(){
+  var M3U_URL='https://iptv-org.github.io/iptv/countries/in.m3u';
+  var channels=[];
+  var filtered=[];
+  var focusIdx=0;
+  var currentIdx=-1;
+  var grid=document.getElementById('grid');
+  var search=document.getElementById('search');
+  var status=document.getElementById('status');
+  var player=document.getElementById('player');
+  var video=document.getElementById('video');
+  var playerName=document.getElementById('playerName');
+  var MAX_RENDER=120;
+
+  // Fetch and parse M3U
+  fetch(M3U_URL).then(function(r){return r.text()}).then(function(text){
+    channels=parseM3U(text);
+    filtered=channels;
+    status.textContent=channels.length+' channels';
+    render();
+  }).catch(function(){
+    status.textContent='Failed to load';
+    grid.innerHTML='<div class="error-box"><h2>Connection Failed</h2><p>Could not load channel list. Check your internet connection.</p></div>';
+  });
+
+  function parseM3U(text){
+    var result=[];
+    var lines=text.split('\n');
+    var ch=null;
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i].trim();
+      if(line.indexOf('#EXTINF:')===0){
+        var name=(line.match(/,([^,]+)$/)||[])[1]||'Unknown';
+        var group=(line.match(/group-title="([^"]*)"/)||[])[1]||'General';
+        ch={name:name.trim(),group:group,url:''};
+      }else if(ch&&line&&line[0]!=='#'){
+        ch.url=line;
+        result.push(ch);
+        ch=null;
+      }
+    }
+    return result;
+  }
+
+  function render(){
+    var html='';
+    var count=Math.min(filtered.length,MAX_RENDER);
+    for(var i=0;i<count;i++){
+      var c=filtered[i];
+      html+='<div class="card'+(i===focusIdx?' focused':'')+'" data-idx="'+i+'" tabindex="0">';
+      html+='<div class="card-live">LIVE</div>';
+      html+='<div class="card-name">'+esc(c.name)+'</div>';
+      html+='<div class="card-group">'+esc(c.group)+'</div>';
+      html+='</div>';
+    }
+    if(filtered.length>MAX_RENDER){
+      html+='<div style="padding:20px;text-align:center;color:#666;grid-column:1/-1">Showing '+MAX_RENDER+' of '+filtered.length+' channels. Search to find more.</div>';
+    }
+    grid.innerHTML=html;
+    if(count>0) updateFocus();
+  }
+
+  function esc(s){
+    var d=document.createElement('div');
+    d.textContent=s;
+    return d.innerHTML;
+  }
+
+  // Search
+  var searchTimer;
+  search.addEventListener('input',function(){
+    clearTimeout(searchTimer);
+    searchTimer=setTimeout(function(){
+      var q=search.value.toLowerCase();
+      if(!q){filtered=channels}
+      else{filtered=channels.filter(function(c){return c.name.toLowerCase().indexOf(q)!==-1||c.group.toLowerCase().indexOf(q)!==-1})}
+      focusIdx=0;
+      render();
+    },250);
+  });
+
+  // Click to play
+  grid.addEventListener('click',function(e){
+    var card=e.target.closest('.card');
+    if(card) playChannel(parseInt(card.dataset.idx));
+  });
+
+  // Player controls
+  document.getElementById('backBtn').addEventListener('click',closePlayer);
+  document.getElementById('prevBtn').addEventListener('click',function(){if(filtered.length)playChannel((currentIdx-1+filtered.length)%filtered.length)});
+  document.getElementById('nextBtn').addEventListener('click',function(){if(filtered.length)playChannel((currentIdx+1)%filtered.length)});
+
+  function playChannel(idx){
+    currentIdx=idx;
+    var ch=filtered[idx];
+    if(!ch)return;
+    playerName.textContent=ch.name;
+    player.classList.add('active');
+    video.src='';
+    // Try HLS native or direct
+    if(ch.url.indexOf('.m3u8')!==-1&&video.canPlayType('application/vnd.apple.mpegurl')){
+      video.src=ch.url;
+      video.play().catch(function(){});
+    }else{
+      video.src=ch.url;
+      video.play().catch(function(){});
+    }
+  }
+
+  function closePlayer(){
+    player.classList.remove('active');
+    video.pause();
+    video.src='';
+    currentIdx=-1;
+  }
+
+  // Arrow key navigation
+  function updateFocus(){
+    var cards=grid.querySelectorAll('.card');
+    cards.forEach(function(c,i){
+      if(i===focusIdx){c.classList.add('focused');c.focus()}
+      else c.classList.remove('focused');
+    });
+  }
+
+  function getColumns(){
+    var card=grid.querySelector('.card');
+    if(!card)return 2;
+    var gw=grid.clientWidth;
+    var cw=card.offsetWidth+10;
+    return Math.max(1,Math.round(gw/cw));
+  }
+
+  document.addEventListener('keydown',function(e){
+    if(player.classList.contains('active')){
+      if(e.key==='Escape'||e.key==='Backspace'){closePlayer();e.preventDefault()}
+      if(e.key==='ArrowLeft'){document.getElementById('prevBtn').click();e.preventDefault()}
+      if(e.key==='ArrowRight'){document.getElementById('nextBtn').click();e.preventDefault()}
+      return;
+    }
+    if(document.activeElement===search&&e.key!=='Escape')return;
+    var count=Math.min(filtered.length,MAX_RENDER);
+    if(!count)return;
+    var cols=getColumns();
+    if(e.key==='ArrowDown'){focusIdx=Math.min(focusIdx+cols,count-1);updateFocus();e.preventDefault()}
+    else if(e.key==='ArrowUp'){focusIdx=Math.max(focusIdx-cols,0);updateFocus();e.preventDefault()}
+    else if(e.key==='ArrowRight'){focusIdx=Math.min(focusIdx+1,count-1);updateFocus();e.preventDefault()}
+    else if(e.key==='ArrowLeft'){focusIdx=Math.max(focusIdx-1,0);updateFocus();e.preventDefault()}
+    else if(e.key==='Enter'){playChannel(focusIdx);e.preventDefault()}
+    else if(e.key==='Escape'){search.focus();e.preventDefault()}
+  });
+
+  // Hide nav hint after 5s
+  setTimeout(function(){var h=document.getElementById('navHint');if(h)h.style.display='none'},5000);
+})();
+</script>
+</body>
+</html>

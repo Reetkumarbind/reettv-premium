@@ -8,7 +8,7 @@ interface MobileChannelGridProps {
   onSelect: (channel: IPTVChannel) => void;
   onToggleFavorite: (id: string) => void;
   title?: string;
-  sectionType?: 'trending' | 'favorites' | 'browse';
+  sectionType?: 'trending' | 'favorite' | 'new';
   showBadges?: boolean;
 }
 
@@ -18,7 +18,7 @@ const MobileChannelGrid: React.FC<MobileChannelGridProps> = memo(({
   onSelect,
   onToggleFavorite,
   title,
-  sectionType = 'browse',
+  sectionType = 'trending',
   showBadges = true,
 }) => {
   if (channels.length === 0) {

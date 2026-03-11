@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useChannelStore } from '@/store/channelStore';
 import { useAuthStore } from '@/store/authStore';
 
+// Cast supabase to any to work around missing table type definitions
+const db = supabase as any;
+
 const QUERY_KEYS = {
   channels: ['channels'] as const,
   favorites: ['favorites'] as const,
@@ -55,7 +58,7 @@ export const useFetchFavorites = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return [];
       
-      const { data, error } = await supabase
+       const { data, error } = await db
         .from('favorites')
         .select('*')
         .eq('user_id', userId);
@@ -75,7 +78,7 @@ export const useFetchWatchHistory = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return [];
       
-      const { data, error } = await supabase
+       const { data, error } = await db
         .from('watch_history')
         .select('*')
         .eq('user_id', userId)
@@ -97,7 +100,7 @@ export const useFetchUserProfile = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return null;
       
-      const { data, error } = await supabase
+       const { data, error } = await db
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -118,7 +121,7 @@ export const useFetchUserPreferences = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return null;
       
-      const { data, error } = await supabase
+       const { data, error } = await db
         .from('user_preferences')
         .select('*')
         .eq('user_id', userId)
@@ -139,7 +142,7 @@ export const useFetchNotifications = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return [];
       
-      const { data, error } = await supabase
+       const { data, error } = await db
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
@@ -164,7 +167,7 @@ export const useAddFavorite = () => {
     mutationFn: async (channel: IPTVChannel) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
+       const { error } = await db
         .from('favorites')
         .insert({
           user_id: user.id,
@@ -190,7 +193,7 @@ export const useRemoveFavorite = () => {
     mutationFn: async (channelId: string) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
+       const { error } = await db
         .from('favorites')
         .delete()
         .eq('user_id', user.id)
@@ -213,7 +216,7 @@ export const useAddWatchHistory = () => {
     mutationFn: async (data: { channelId: string; channelName: string; duration: number }) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
+       const { error } = await db
         .from('watch_history')
         .insert({
           user_id: user.id,
@@ -239,7 +242,7 @@ export const useUpdateUserPreferences = () => {
     mutationFn: async (preferences: Record<string, any>) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
+       const { error } = await db
         .from('user_preferences')
         .update(preferences)
         .eq('user_id', user.id);
