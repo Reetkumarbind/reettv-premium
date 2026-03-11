@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useChannelStore } from '@/store/channelStore';
 import { useAuthStore } from '@/store/authStore';
 
+// Cast supabase to any to work around missing table type definitions
+const db = supabase as any;
+
 const QUERY_KEYS = {
   channels: ['channels'] as const,
   favorites: ['favorites'] as const,

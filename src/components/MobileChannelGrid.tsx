@@ -18,7 +18,7 @@ const MobileChannelGrid: React.FC<MobileChannelGridProps> = memo(({
   onSelect,
   onToggleFavorite,
   title,
-  sectionType = 'browse',
+  sectionType = 'trending',
   showBadges = true,
 }) => {
   if (channels.length === 0) {
