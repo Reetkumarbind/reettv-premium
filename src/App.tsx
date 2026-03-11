@@ -8,6 +8,7 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const TVLitePage = lazy(() => import("./pages/TVLitePage"));
 
 // Lazy load UI providers to defer non-critical imports
 const UIProviders = lazy(() => import("./components/UIProviders"));
