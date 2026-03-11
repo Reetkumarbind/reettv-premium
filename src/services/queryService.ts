@@ -216,7 +216,7 @@ export const useAddWatchHistory = () => {
     mutationFn: async (data: { channelId: string; channelName: string; duration: number }) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
+       const { error } = await db
         .from('watch_history')
         .insert({
           user_id: user.id,
