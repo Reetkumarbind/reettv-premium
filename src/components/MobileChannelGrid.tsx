@@ -8,7 +8,7 @@ interface MobileChannelGridProps {
   onSelect: (channel: IPTVChannel) => void;
   onToggleFavorite: (id: string) => void;
   title?: string;
-  sectionType?: 'trending' | 'favorites' | 'browse';
+  sectionType?: 'trending' | 'favorite' | 'new';
   showBadges?: boolean;
 }
 
