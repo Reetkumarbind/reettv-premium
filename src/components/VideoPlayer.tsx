@@ -431,7 +431,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         playsInline
         preload="auto"
         crossOrigin="anonymous"
-        onDoubleClick={toggleFullscreen}
+        onClick={toggleFullscreen}
       />
 
 
