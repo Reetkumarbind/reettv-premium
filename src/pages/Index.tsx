@@ -244,21 +244,12 @@ const Index: React.FC = () => {
   const handleExitPlayer = useCallback(() => setViewMode('gallery'), []);
   const handleShowKeyboard = useCallback(() => setShowKeyboardShortcuts(true), []);
 
-  // Use useRef to track current channel without triggering re-renders on every channels array change
-  const currentChannelRef = useRef<IPTVChannel | null>(null);
-  const prevChannelIdRef = useRef<string | null>(null);
-  
-  useEffect(() => {
+  const currentChannel = useMemo(() => {
     if (currentIndex >= 0 && currentIndex < channels.length) {
-      const newChannel = channels[currentIndex];
-      if (prevChannelIdRef.current !== newChannel.id) {
-        currentChannelRef.current = newChannel;
-        prevChannelIdRef.current = newChannel.id;
-      }
+      return channels[currentIndex];
     }
+    return null;
   }, [currentIndex, channels]);
-
-  const currentChannel = currentChannelRef.current;
   const nextChannelName = useMemo(() => {
     if (channels.length === 0 || currentIndex < 0) return null;
     return channels[(currentIndex + 1) % channels.length].name;
