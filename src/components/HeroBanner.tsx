@@ -26,7 +26,8 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ channels, onSelect }) => {
   }, [next, featured.length]);
 
   if (featured.length === 0) return null;
-  const current = featured[activeIndex];
+  const safeIndex = activeIndex >= featured.length ? 0 : activeIndex;
+  const current = featured[safeIndex];
 
   return (
     <div className="relative w-full h-48 sm:h-56 lg:h-64 mb-6 rounded-3xl overflow-hidden group bg-card border border-border/10">
