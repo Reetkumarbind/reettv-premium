@@ -113,28 +113,38 @@ const Index: React.FC = () => {
         setChannels(healthFiltered);
         setIsLoading(false);
 
+        // Defer health checks until after UI is interactive (3s delay)
         if (!healthCheckRunning.current) {
           healthCheckRunning.current = true;
-          // Cancel any previous health check
           if (healthCheckAbortRef.current) {
             healthCheckAbortRef.current.abort();
           }
           healthCheckAbortRef.current = new AbortController();
           const abortSignal = healthCheckAbortRef.current.signal;
           
-          ChannelHealthService.checkChannelsBatch(
-            validChannels,
-            (newHealthyIds) => {
+          const startHealthChecks = () => {
+            if (abortSignal.aborted) return;
+            ChannelHealthService.checkChannelsBatch(
+              validChannels,
+              (newHealthyIds) => {
+                if (!abortSignal.aborted) {
+                  setHealthyIds(new Set(newHealthyIds));
+                }
+              },
+              5 // smaller batch size to reduce network flooding
+            ).finally(() => { 
               if (!abortSignal.aborted) {
-                setHealthyIds(new Set(newHealthyIds));
+                healthCheckRunning.current = false;
               }
-            },
-            8
-          ).finally(() => { 
-            if (!abortSignal.aborted) {
-              healthCheckRunning.current = false;
-            }
-          });
+            });
+          };
+          
+          // Use requestIdleCallback or setTimeout(3s) to defer
+          if ('requestIdleCallback' in window) {
+            (window as any).requestIdleCallback(() => setTimeout(startHealthChecks, 1000), { timeout: 5000 });
+          } else {
+            setTimeout(startHealthChecks, 3000);
+          }
         }
       } catch (err) {
         console.error('Error loading channels:', err);

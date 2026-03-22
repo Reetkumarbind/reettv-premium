@@ -1,12 +1,7 @@
-/// <reference lib="webworker" />
-
-declare const self: ServiceWorkerGlobalScope;
-
-const CACHE_NAME = 'reet-tv-v1';
+const CACHE_NAME = 'reet-tv-v2';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json',
 ];
 
 // Install event - cache essential assets
@@ -33,61 +28,46 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network first for API/streams, cache first for assets
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  // Skip external URLs and APIs
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
-
-      return fetch(event.request)
-        .then((response) => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type === 'error') {
-            return response;
+  if (event.request.method !== 'GET') return;
+  
+  const url = new URL(event.request.url);
+  
+  // Skip external URLs (streams, APIs)
+  if (url.origin !== self.location.origin) return;
+  
+  // Cache-first for static assets
+  if (url.pathname.match(/\.(js|css|png|jpg|svg|woff2?)$/)) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
-
-          // Clone the response
-          const responseToCache = response.clone();
-
-          // Cache the response for future requests
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-
           return response;
-        })
-        .catch(() => {
-          // Fallback for offline
-          return new Response(
-            JSON.stringify({
-              error: 'You are offline. Some features may be limited.',
-            }),
-            {
-              status: 503,
-              statusText: 'Service Unavailable',
-              headers: new Headers({
-                'Content-Type': 'application/json',
-              }),
-            }
-          );
         });
-    })
+      })
+    );
+    return;
+  }
+  
+  // Network-first for HTML
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request).then((r) => r || new Response('Offline', { status: 503 })))
   );
 });
 
-// Handle messages from clients
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

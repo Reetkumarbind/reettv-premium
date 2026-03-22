@@ -127,9 +127,9 @@ export class ChannelHealthService {
         lastUpdateHealthyIds = new Set(healthyIds);
       }
 
-      // Small delay between batches to avoid flooding
+      // Longer delay between batches to avoid flooding network and CPU
       if (i + batchSize < toCheck.length) {
-        await new Promise(r => setTimeout(r, 500)); // Increased delay to 500ms for better batching
+        await new Promise(r => setTimeout(r, 1500)); // 1.5s delay to reduce network pressure
       }
     }
   }
