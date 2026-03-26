@@ -129,34 +129,6 @@ const Index: React.FC = () => {
     refetch();
   }, [refetch]);
 
-  useEffect(() => {
-    if (healthyIds === null) return;
-    // Debounce the channel update to batch multiple health check updates
-    const timeoutId = setTimeout(() => {
-      setChannels((prevChannels) => {
-        // Sort channels with healthy ones first, but keep ALL channels available
-        const sorted = [...prevChannels].sort((a, b) => {
-          const aHealthy = healthyIds.has(a.id) ? 0 : 1;
-          const bHealthy = healthyIds.has(b.id) ? 0 : 1;
-          return aHealthy - bHealthy;
-        });
-        return sorted;
-      });
-    }, 500); // Batch updates every 500ms to prevent UI thrashing
-    return () => clearTimeout(timeoutId);
-  }, [healthyIds]);
-
-  const handleRefresh = useCallback(() => {
-    localStorage.removeItem('iptv_channel_health_v2');
-    setError(null);
-    setRefreshKey(prev => prev + 1);
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    setError(null);
-    setRefreshKey(prev => prev + 1);
-  }, []);
-
   useEffect(() => { 
     return () => {
       keyboardService.destroy();
