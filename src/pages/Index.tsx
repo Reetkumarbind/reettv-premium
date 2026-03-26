@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense, useRef } from 'react';
 import { IPTVChannel, UserPreferences } from '../types';
-import { fetchAndParseM3U } from '../services/m3uParser';
 import { StorageService } from '../services/storageService';
 import { ChannelHealthService } from '../services/channelHealthService';
 import { KeyboardService } from '../services/keyboardService';
 import { useSEO } from '../hooks/useSEO';
+import { useChannels } from '../hooks/useChannels';
 import ChannelGallery from '../components/ChannelGallery';
 import AppSidebar, { SidebarView } from '../components/AppSidebar';
 import BottomNavBar from '../components/BottomNavBar';
@@ -16,19 +16,15 @@ const SettingsPanel = lazy(() => import('../components/SettingsPanel'));
 const KeyboardShortcuts = lazy(() => import('../components/KeyboardShortcuts'));
 const MiniPlayer = lazy(() => import('../components/MiniPlayer'));
 
-const M3U_URL = 'https://iptv-org.github.io/iptv/countries/in.m3u';
-
 type ViewMode = 'gallery' | 'player' | 'mini';
 
 const VIEW_ORDER: SidebarView[] = ['home', 'trending', 'favorites', 'categories'];
 
 const Index: React.FC = () => {
-  const [channels, setChannels] = useState<IPTVChannel[]>([]);
+  const { data: channels = [], isLoading, error: queryError, refetch } = useChannels();
   const [healthyIds, setHealthyIds] = useState<Set<string> | null>(null);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [favorites, setFavorites] = useState<Set<string>>(() => new Set(StorageService.getFavorites()));
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('gallery');
   const [sidebarView, setSidebarView] = useState<SidebarView>('home');
   const [transitionDir, setTransitionDir] = useState<'left' | 'right' | null>(null);
@@ -38,9 +34,20 @@ const Index: React.FC = () => {
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
   const [keyboardService] = useState(() => new KeyboardService());
   const [miniPlayerPosition, setMiniPlayerPosition] = useState({ x: 20, y: 20 });
-  const [refreshKey, setRefreshKey] = useState(0);
   const healthCheckRunning = useRef(false);
   const healthCheckAbortRef = useRef<AbortController | null>(null);
+
+  const error = queryError ? (queryError instanceof Error ? queryError.message : 'Connection failed') : null;
+
+  // Sort channels with healthy ones first when health data arrives
+  const sortedChannels = useMemo(() => {
+    if (healthyIds === null) return channels;
+    return [...channels].sort((a, b) => {
+      const aH = healthyIds.has(a.id) ? 0 : 1;
+      const bH = healthyIds.has(b.id) ? 0 : 1;
+      return aH - bH;
+    });
+  }, [channels, healthyIds]);
 
   // Swipe to navigate between views
   const navigateView = useCallback((direction: 'left' | 'right') => {
@@ -73,7 +80,7 @@ const Index: React.FC = () => {
     document.documentElement.classList.add('dark');
   }, []);
 
-  // SEO Hook - Update meta tags based on current view
+  // SEO Hook
   useSEO({
     title: sidebarView === 'favorites' 
       ? 'My Favorites' 
@@ -88,74 +95,39 @@ const Index: React.FC = () => {
     type: 'website',
   });
 
+  // Deferred background health checks
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+    if (channels.length === 0 || healthCheckRunning.current) return;
+    healthCheckRunning.current = true;
+    if (healthCheckAbortRef.current) healthCheckAbortRef.current.abort();
+    healthCheckAbortRef.current = new AbortController();
+    const signal = healthCheckAbortRef.current.signal;
 
-        const savedFavorites = StorageService.getFavorites();
-        setFavorites(new Set(savedFavorites));
-
-        const cached = ChannelHealthService.getCachedChannels();
-        if (cached && cached.length > 0) {
-          const healthy = ChannelHealthService.filterHealthyChannels(cached);
-          setChannels(healthy);
-          setIsLoading(false);
-        }
-
-        const data = await fetchAndParseM3U(M3U_URL);
-        const validChannels = data.filter(channel => channel.url && channel.name && channel.id);
-
-        ChannelHealthService.cacheChannels(validChannels);
-
-        const healthFiltered = ChannelHealthService.filterHealthyChannels(validChannels);
-        setChannels(healthFiltered);
-        setIsLoading(false);
-
-        // Defer health checks until after UI is interactive (3s delay)
-        if (!healthCheckRunning.current) {
-          healthCheckRunning.current = true;
-          if (healthCheckAbortRef.current) {
-            healthCheckAbortRef.current.abort();
-          }
-          healthCheckAbortRef.current = new AbortController();
-          const abortSignal = healthCheckAbortRef.current.signal;
-          
-          const startHealthChecks = () => {
-            if (abortSignal.aborted) return;
-            ChannelHealthService.checkChannelsBatch(
-              validChannels,
-              (newHealthyIds) => {
-                if (!abortSignal.aborted) {
-                  setHealthyIds(new Set(newHealthyIds));
-                }
-              },
-              5 // smaller batch size to reduce network flooding
-            ).finally(() => { 
-              if (!abortSignal.aborted) {
-                healthCheckRunning.current = false;
-              }
-            });
-          };
-          
-          // Use requestIdleCallback or setTimeout(3s) to defer
-          if ('requestIdleCallback' in window) {
-            (window as any).requestIdleCallback(() => setTimeout(startHealthChecks, 1000), { timeout: 5000 });
-          } else {
-            setTimeout(startHealthChecks, 3000);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading channels:', err);
-        if (channels.length === 0) {
-          setError(err instanceof Error ? err.message : 'Connection failed');
-        }
-        setIsLoading(false);
-      }
+    const run = () => {
+      if (signal.aborted) return;
+      ChannelHealthService.checkChannelsBatch(
+        channels,
+        (ids) => { if (!signal.aborted) setHealthyIds(new Set(ids)); },
+        5
+      ).finally(() => { if (!signal.aborted) healthCheckRunning.current = false; });
     };
-    initApp();
-  }, [refreshKey]);
+
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(() => setTimeout(run, 1000), { timeout: 5000 });
+    } else {
+      setTimeout(run, 3000);
+    }
+  }, [channels]);
+
+  const handleRefresh = useCallback(() => {
+    localStorage.removeItem('iptv_channel_health_v2');
+    healthCheckRunning.current = false;
+    refetch();
+  }, [refetch]);
+
+  const handleRetry = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   useEffect(() => {
     if (healthyIds === null) return;
