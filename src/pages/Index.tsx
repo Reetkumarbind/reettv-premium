@@ -39,7 +39,7 @@ const Index: React.FC = () => {
 
   const error = queryError ? (queryError instanceof Error ? queryError.message : 'Connection failed') : null;
 
-  // Sort channels with healthy ones first when health data arrives
+  // Sort sortedChannels with healthy ones first when health data arrives
   const sortedChannels = useMemo(() => {
     if (healthyIds === null) return channels;
     return [...channels].sort((a, b) => {
@@ -166,14 +166,14 @@ const Index: React.FC = () => {
       }
     }});
     keyboardService.addShortcut({ key: 'ArrowLeft', description: 'Previous Channel', action: () => {
-      if (viewMode === 'player' && channels.length > 0) setCurrentIndex((prev) => (prev - 1 + channels.length) % channels.length);
+      if (viewMode === 'player' && sortedChannels.length > 0) setCurrentIndex((prev) => (prev - 1 + sortedChannels.length) % sortedChannels.length);
     }});
     keyboardService.addShortcut({ key: 'ArrowRight', description: 'Next Channel', action: () => {
-      if (viewMode === 'player' && channels.length > 0) setCurrentIndex((prev) => (prev + 1) % channels.length);
+      if (viewMode === 'player' && sortedChannels.length > 0) setCurrentIndex((prev) => (prev + 1) % sortedChannels.length);
     }});
     keyboardService.addShortcut({ key: 'Escape', description: 'Back to Gallery', action: () => setViewMode('gallery') });
     keyboardService.addShortcut({ key: 'h', description: 'Toggle Favorite', action: () => {
-      if (currentIndex >= 0 && channels[currentIndex]) toggleFavorite(channels[currentIndex].id);
+      if (currentIndex >= 0 && sortedChannels[currentIndex]) toggleFavorite(sortedChannels[currentIndex].id);
     }});
     keyboardService.addShortcut({ key: 'm', description: 'Toggle Mute', action: () => {
       const video = document.querySelector('video'); if (video) video.muted = !video.muted;
@@ -182,10 +182,10 @@ const Index: React.FC = () => {
     keyboardService.addShortcut({ key: '?', description: 'Show Shortcuts', action: () => setShowKeyboardShortcuts(true) });
 
     return () => keyboardService.clearShortcuts();
-  }, [preferences.keyboardShortcuts, viewMode, currentIndex, channels, keyboardService, toggleFavorite]);
+  }, [preferences.keyboardShortcuts, viewMode, currentIndex, sortedChannels, keyboardService, toggleFavorite]);
 
-  const handleNext = useCallback(() => { if (channels.length === 0) return; setCurrentIndex((prev) => (prev + 1) % channels.length); }, [channels.length]);
-  const handlePrevious = useCallback(() => { if (channels.length === 0) return; setCurrentIndex((prev) => (prev - 1 + channels.length) % channels.length); }, [channels.length]);
+  const handleNext = useCallback(() => { if (sortedChannels.length === 0) return; setCurrentIndex((prev) => (prev + 1) % sortedChannels.length); }, [sortedChannels.length]);
+  const handlePrevious = useCallback(() => { if (sortedChannels.length === 0) return; setCurrentIndex((prev) => (prev - 1 + sortedChannels.length) % sortedChannels.length); }, [sortedChannels.length]);
 
   const handleSelectChannel = useCallback((index: number) => { 
     setCurrentIndex(index); 
@@ -199,15 +199,15 @@ const Index: React.FC = () => {
   const handleShowKeyboard = useCallback(() => setShowKeyboardShortcuts(true), []);
 
   const currentChannel = useMemo(() => {
-    if (currentIndex >= 0 && currentIndex < channels.length) {
-      return channels[currentIndex];
+    if (currentIndex >= 0 && currentIndex < sortedChannels.length) {
+      return sortedChannels[currentIndex];
     }
     return null;
-  }, [currentIndex, channels]);
+  }, [currentIndex, sortedChannels]);
   const nextChannelName = useMemo(() => {
-    if (channels.length === 0 || currentIndex < 0) return null;
-    return channels[(currentIndex + 1) % channels.length].name;
-  }, [channels, currentIndex]);
+    if (sortedChannels.length === 0 || currentIndex < 0) return null;
+    return sortedChannels[(currentIndex + 1) % sortedChannels.length].name;
+  }, [sortedChannels, currentIndex]);
 
   // Memoize callbacks for VideoPlayer to prevent re-renders
   const handleToggleFavorite = useCallback(() => {
@@ -281,7 +281,7 @@ const Index: React.FC = () => {
         {viewMode === 'gallery' ? (
           <div className={`h-full w-full pb-14 xs:pb-16 md:pb-0 pt-12 xs:pt-0 md:pt-0 ${transitionClass}`} key={sidebarView}>
             <ChannelGallery
-              channels={channels}
+              sortedChannels={sortedChannels}
               favorites={favorites}
               onSelect={handleSelectChannel}
               onToggleFavorite={toggleFavorite}
