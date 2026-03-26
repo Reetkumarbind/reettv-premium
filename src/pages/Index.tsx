@@ -281,7 +281,7 @@ const Index: React.FC = () => {
         {viewMode === 'gallery' ? (
           <div className={`h-full w-full pb-14 xs:pb-16 md:pb-0 pt-12 xs:pt-0 md:pt-0 ${transitionClass}`} key={sidebarView}>
             <ChannelGallery
-              sortedChannels={sortedChannels}
+              channels={sortedChannels}
               favorites={favorites}
               onSelect={handleSelectChannel}
               onToggleFavorite={toggleFavorite}
