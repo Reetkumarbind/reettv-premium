@@ -73,7 +73,7 @@ export class ChannelHealthService {
   static async checkChannelsBatch(
     channels: IPTVChannel[],
     onUpdate: (healthyIds: Set<string>) => void,
-    batchSize = 10
+    batchSize = 3
   ): Promise<void> {
     const records = this.getHealthRecords();
     const healthCheckTTL = 2 * 60 * 60 * 1000;
@@ -129,14 +129,14 @@ export class ChannelHealthService {
 
       // Longer delay between batches to avoid flooding network and CPU
       if (i + batchSize < toCheck.length) {
-        await new Promise(r => setTimeout(r, 1500)); // 1.5s delay to reduce network pressure
+        await new Promise(r => setTimeout(r, 3000)); // 3s delay to reduce network pressure
       }
     }
   }
 
   private static async probeChannel(channel: IPTVChannel): Promise<boolean> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 3000);
 
     try {
       const response = await fetch(channel.url, {

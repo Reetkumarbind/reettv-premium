@@ -95,28 +95,35 @@ const Index: React.FC = () => {
     type: 'website',
   });
 
-  // Deferred background health checks
+  // Deferred background health checks — skip if cache is fresh
   useEffect(() => {
     if (channels.length === 0 || healthCheckRunning.current) return;
-    healthCheckRunning.current = true;
-    if (healthCheckAbortRef.current) healthCheckAbortRef.current.abort();
-    healthCheckAbortRef.current = new AbortController();
-    const signal = healthCheckAbortRef.current.signal;
+    
+    // Skip health checks entirely for first 5 seconds to let UI be interactive
+    const skipTimer = setTimeout(() => {
+      if (healthCheckRunning.current) return;
+      healthCheckRunning.current = true;
+      if (healthCheckAbortRef.current) healthCheckAbortRef.current.abort();
+      healthCheckAbortRef.current = new AbortController();
+      const signal = healthCheckAbortRef.current.signal;
 
-    const run = () => {
-      if (signal.aborted) return;
-      ChannelHealthService.checkChannelsBatch(
-        channels,
-        (ids) => { if (!signal.aborted) setHealthyIds(new Set(ids)); },
-        5
-      ).finally(() => { if (!signal.aborted) healthCheckRunning.current = false; });
-    };
+      const run = () => {
+        if (signal.aborted) return;
+        ChannelHealthService.checkChannelsBatch(
+          channels,
+          (ids) => { if (!signal.aborted) setHealthyIds(new Set(ids)); },
+          3
+        ).finally(() => { if (!signal.aborted) healthCheckRunning.current = false; });
+      };
 
-    if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(() => setTimeout(run, 1000), { timeout: 5000 });
-    } else {
-      setTimeout(run, 3000);
-    }
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(run, { timeout: 10000 });
+      } else {
+        run();
+      }
+    }, 5000);
+
+    return () => clearTimeout(skipTimer);
   }, [channels]);
 
   const handleRefresh = useCallback(() => {
