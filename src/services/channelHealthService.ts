@@ -73,7 +73,7 @@ export class ChannelHealthService {
   static async checkChannelsBatch(
     channels: IPTVChannel[],
     onUpdate: (healthyIds: Set<string>) => void,
-    batchSize = 10
+    batchSize = 3
   ): Promise<void> {
     const records = this.getHealthRecords();
     const healthCheckTTL = 2 * 60 * 60 * 1000;
