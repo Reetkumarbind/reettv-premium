@@ -1,19 +1,47 @@
 import { IPTVChannel } from '../types';
 
+const M3U_CACHE_KEY = 'iptv_m3u_raw_cache';
+const M3U_CACHE_TTL = 10 * 60 * 1000; // 10 min
+
 export async function fetchAndParseM3U(url: string): Promise<IPTVChannel[]> {
   try {
+    // Try raw text cache first for instant parse
+    const cached = getM3UCache();
+    if (cached) {
+      // Parse cached text immediately, refresh in background
+      const channels = parseM3U(cached);
+      fetch(url).then(r => r.ok ? r.text() : null).then(t => { if (t) setM3UCache(t); }).catch(() => {});
+      return channels;
+    }
+
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch playlist: ${response.status}`);
     }
     
     const text = await response.text();
+    setM3UCache(text);
     return parseM3U(text);
   } catch (error) {
     console.error('Error fetching M3U:', error);
-    // Return demo channels if fetch fails
     return getDemoChannels();
   }
+}
+
+function getM3UCache(): string | null {
+  try {
+    const raw = localStorage.getItem(M3U_CACHE_KEY);
+    if (!raw) return null;
+    const { text, ts } = JSON.parse(raw);
+    if (Date.now() - ts > M3U_CACHE_TTL) return null;
+    return text;
+  } catch { return null; }
+}
+
+function setM3UCache(text: string): void {
+  try {
+    localStorage.setItem(M3U_CACHE_KEY, JSON.stringify({ text, ts: Date.now() }));
+  } catch {}
 }
 
 function parseM3U(content: string): IPTVChannel[] {
