@@ -129,7 +129,7 @@ export class ChannelHealthService {
 
       // Longer delay between batches to avoid flooding network and CPU
       if (i + batchSize < toCheck.length) {
-        await new Promise(r => setTimeout(r, 1500)); // 1.5s delay to reduce network pressure
+        await new Promise(r => setTimeout(r, 3000)); // 3s delay to reduce network pressure
       }
     }
   }
