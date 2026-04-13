@@ -32,19 +32,22 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
   if (channels.length === 0) return null;
 
   return (
-    <div className="mb-7 group/row">
+    <div className="mb-8 group/row animate-slide-up-fade">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-bold text-foreground">{title}</h3>
-        <span className="text-[11px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full">{channels.length}</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-1 h-5 rounded-full bg-primary" />
+          <h3 className="text-base font-bold text-foreground tracking-tight">{title}</h3>
+        </div>
+        <span className="text-[11px] text-muted-foreground bg-muted/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-border/10">{channels.length} channels</span>
       </div>
       <div className="relative">
         <button
           onClick={() => scroll('left')}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border/20 opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-background/90 shadow-lg"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2.5 rounded-full bg-background/60 backdrop-blur-md border border-border/10 opacity-0 group-hover/row:opacity-100 transition-all duration-300 hover:bg-background/80 hover:scale-110 shadow-xl"
         >
           <ChevronLeft className="w-4 h-4 text-foreground" />
         </button>
-        <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 snap-x snap-mandatory">
+        <div ref={scrollRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 snap-x snap-mandatory">
           {channels.map((channel, index) => (
             <div key={channel.id} className="flex-shrink-0 w-36 sm:w-44 lg:w-48 snap-start">
               <ChannelCard
@@ -59,7 +62,7 @@ const CategoryRow: React.FC<CategoryRowProps> = ({
         </div>
         <button
           onClick={() => scroll('right')}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-background/80 backdrop-blur-sm border border-border/20 opacity-0 group-hover/row:opacity-100 transition-opacity hover:bg-background/90 shadow-lg"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2.5 rounded-full bg-background/60 backdrop-blur-md border border-border/10 opacity-0 group-hover/row:opacity-100 transition-all duration-300 hover:bg-background/80 hover:scale-110 shadow-xl"
         >
           <ChevronRight className="w-4 h-4 text-foreground" />
         </button>

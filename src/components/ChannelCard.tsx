@@ -1,5 +1,5 @@
 import React, { useState, memo } from 'react';
-import { Heart, Play } from 'lucide-react';
+import { Heart, Play, Wifi } from 'lucide-react';
 import { IPTVChannel } from '../types';
 
 interface ChannelCardProps {
@@ -45,19 +45,36 @@ const ChannelCard: React.FC<ChannelCardProps> = memo(({
     onToggleFavorite();
   };
 
+  const delay = Math.min(index * 40, 400);
+
   return (
     <div
       onClick={onSelect}
-      className="group relative rounded-3xl overflow-hidden cursor-pointer bg-card border border-border/20 hover:border-primary/30 transition-all duration-300 active:scale-[0.97] hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 hover:animate-glow"
-      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
+      className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-500 active:scale-[0.96] hover:-translate-y-1.5 animate-slide-up-fade"
+      style={{ animationDelay: `${delay}ms`, animationFillMode: 'both' }}
     >
+      {/* Glassmorphism card background */}
+      <div className="absolute inset-0 bg-card/60 backdrop-blur-xl border border-border/10 rounded-2xl group-hover:border-primary/20 transition-colors duration-500" />
+      
+      {/* Ambient glow on hover */}
+      <div
+        className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-xl -z-10"
+        style={{ background: `radial-gradient(circle, hsl(${hue} 70% 50% / 0.15), transparent 70%)` }}
+      />
+
       {/* Thumbnail / Logo area */}
-      <div className="relative aspect-[4/3] sm:aspect-video bg-muted/20 flex items-center justify-center overflow-hidden rounded-t-3xl">
+      <div className="relative aspect-[4/3] sm:aspect-video flex items-center justify-center overflow-hidden">
+        {/* Subtle gradient background */}
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{ background: `linear-gradient(145deg, hsl(${hue} 40% 15%), hsl(${(hue + 60) % 360} 30% 10%))` }}
+        />
+
         {showOriginal && (
           <img
             src={channel.logo}
             alt={channel.name}
-            className="w-full h-full object-contain p-5 transition-transform duration-500 group-hover:scale-110"
+            className="relative w-full h-full object-contain p-5 transition-all duration-700 group-hover:scale-110 group-hover:drop-shadow-[0_0_20px_rgba(255,255,255,0.1)]"
             loading="lazy"
             decoding="async"
             onError={() => setImgFailed(true)}
@@ -67,32 +84,34 @@ const ChannelCard: React.FC<ChannelCardProps> = memo(({
           <img
             src={getLogoSearchUrl(channel.name)}
             alt={channel.name}
-            className="w-full h-full object-contain p-5 transition-transform duration-500 group-hover:scale-110"
+            className="relative w-full h-full object-contain p-5 transition-all duration-700 group-hover:scale-110"
             loading="lazy"
             decoding="async"
             onError={() => setLookupFailed(true)}
           />
         )}
         {showFallback && (
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ background: `linear-gradient(135deg, hsl(${hue} 60% 25%), hsl(${(hue + 40) % 360} 50% 20%))` }}
-          >
-            <span className="text-3xl font-black text-foreground/50 select-none">{getInitials(channel.name)}</span>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div
+              className="absolute inset-0"
+              style={{ background: `linear-gradient(135deg, hsl(${hue} 50% 20%), hsl(${(hue + 40) % 360} 40% 15%))` }}
+            />
+            <span className="relative text-3xl font-black text-foreground/40 select-none tracking-wider">{getInitials(channel.name)}</span>
           </div>
         )}
 
-        {/* Play overlay */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-primary/90 backdrop-blur-sm flex items-center justify-center transform scale-75 group-hover:scale-100 group-hover:animate-pop transition-transform duration-300 shadow-lg">
+        {/* Play overlay with cinematic reveal */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-primary/90 backdrop-blur-md flex items-center justify-center transform scale-50 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-500 delay-75 shadow-lg shadow-primary/30">
             <Play className="w-5 h-5 text-primary-foreground ml-0.5" fill="currentColor" />
           </div>
         </div>
 
-        {/* LIVE badge */}
+        {/* LIVE badge with pulse ring */}
         <div className="absolute top-2.5 left-2.5">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-destructive/90 text-destructive-foreground backdrop-blur-sm shadow-sm">
+          <span className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-destructive/90 text-destructive-foreground backdrop-blur-sm shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-destructive-foreground animate-pulse" />
+            <span className="absolute w-1.5 h-1.5 top-[5px] left-[9px] rounded-full bg-destructive-foreground animate-ping opacity-50" />
             Live
           </span>
         </div>
@@ -100,21 +119,27 @@ const ChannelCard: React.FC<ChannelCardProps> = memo(({
         {/* Favorite */}
         <button
           onClick={handleFavoriteClick}
-          className={`absolute top-2.5 right-2.5 p-2 rounded-full bg-black/30 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-black/50 active:scale-90 ${isFavorite ? 'animate-heartbeat' : ''}`}
+          className={`absolute top-2.5 right-2.5 p-2 rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 active:scale-90 ${
+            isFavorite ? 'bg-destructive/20 opacity-100' : 'bg-background/20 hover:bg-background/40'
+          }`}
         >
-          <Heart className={`w-4 h-4 transition-colors ${isFavorite ? 'text-red-400 fill-red-400' : 'text-white/80'}`} />
+          <Heart className={`w-4 h-4 transition-all duration-300 ${isFavorite ? 'text-destructive fill-destructive scale-110' : 'text-foreground/80'}`} />
         </button>
       </div>
 
-      {/* Info */}
-      <div className="p-3">
-        <h3 className="text-sm font-semibold text-foreground truncate leading-snug">{channel.name}</h3>
+      {/* Info with subtle separator */}
+      <div className="relative p-3">
+        <div className="absolute top-0 left-3 right-3 h-px bg-gradient-to-r from-transparent via-border/30 to-transparent" />
+        <h3 className="text-sm font-semibold text-foreground truncate leading-snug group-hover:text-primary transition-colors duration-300">{channel.name}</h3>
         <div className="flex items-center gap-1.5 mt-1.5">
           {channel.group && (
-            <span className="text-[10px] text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full">{channel.group}</span>
+            <span className="text-[10px] text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full border border-border/10">{channel.group}</span>
           )}
           {channel.language && (
-            <span className="text-[10px] text-muted-foreground">{channel.language}</span>
+            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+              <Wifi className="w-2.5 h-2.5" />
+              {channel.language}
+            </span>
           )}
         </div>
       </div>
