@@ -6,7 +6,9 @@ import { ChannelGridSkeleton } from './ChannelCardSkeleton';
 import HeroBanner from './HeroBanner';
 import CategoryRow from './CategoryRow';
 import VirtualizedChannelGrid from './VirtualizedChannelGrid';
+import RecentlyWatched from './RecentlyWatched';
 import { useDebounce } from '../hooks/useDebounce';
+import { StorageService } from '../services/storageService';
 
 declare global {
   interface Window {
@@ -232,6 +234,11 @@ const ChannelGallery: React.FC<ChannelGalleryProps> = memo(({
                 {channels.length > 0 && (
                   <HeroBanner channels={channels} onSelect={handleChannelSelect} />
                 )}
+                <RecentlyWatched
+                  history={StorageService.getWatchHistory()}
+                  channels={channels}
+                  onSelect={handleChannelSelect}
+                />
                 {favorites.size > 0 && (
                   <CategoryRow
                     title="❤️ Your Favorites"
