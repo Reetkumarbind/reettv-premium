@@ -8,6 +8,7 @@ import { useChannels } from '../hooks/useChannels';
 import ChannelGallery from '../components/ChannelGallery';
 import AppSidebar, { SidebarView } from '../components/AppSidebar';
 import BottomNavBar from '../components/BottomNavBar';
+import InstallPrompt from '../components/InstallPrompt';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { Loader2, AlertCircle, Tv, RefreshCw } from 'lucide-react';
 
@@ -195,9 +196,19 @@ const Index: React.FC = () => {
   const handlePrevious = useCallback(() => { if (sortedChannels.length === 0) return; setCurrentIndex((prev) => (prev - 1 + sortedChannels.length) % sortedChannels.length); }, [sortedChannels.length]);
 
   const handleSelectChannel = useCallback((index: number) => { 
+    const ch = sortedChannels[index];
+    if (ch) {
+      StorageService.addToWatchHistory({
+        channelId: ch.id,
+        channelName: ch.name,
+        timestamp: Date.now(),
+        duration: 0,
+        logo: ch.logo,
+      });
+    }
     setCurrentIndex(index); 
     setViewMode('player'); 
-  }, []);
+  }, [sortedChannels]);
   
   const handleMinimizePlayer = useCallback(() => setViewMode('mini'), []);
   const handleMaximizePlayer = useCallback(() => setViewMode('player'), []);
@@ -355,6 +366,8 @@ const Index: React.FC = () => {
           shortcuts={keyboardService.getShortcuts()}
         />
       </Suspense>
+
+      <InstallPrompt />
     </div>
   );
 };
