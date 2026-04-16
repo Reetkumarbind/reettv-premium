@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
 import { IPTVChannel } from '../types';
+import heroPhoto from '@/assets/hero-photo.png';
 
 interface HeroBannerProps {
   channels: IPTVChannel[];
