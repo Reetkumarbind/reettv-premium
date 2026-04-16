@@ -41,12 +41,12 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ channels, onSelect }) => {
 
   return (
     <div className="relative w-full h-48 sm:h-56 lg:h-72 mb-6 rounded-3xl overflow-hidden group animate-fade-in">
-      {/* Animated gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-card/60 to-accent/20 animate-gradient-shift" style={{ backgroundSize: '200% 200%' }} />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
+      {/* Hero photo background */}
+      <img src={heroPhoto} alt="REET TV Hero" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/20" />
       
       {/* Glassmorphism overlay */}
-      <div className="absolute inset-0 backdrop-blur-[1px] border border-border/10 rounded-3xl" />
+      <div className="absolute inset-0 backdrop-blur-[0.5px] border border-border/10 rounded-3xl" />
 
       {/* Floating particles effect */}
       <div className="absolute top-8 left-1/4 w-32 h-32 bg-primary/10 rounded-full blur-3xl animate-float" />
