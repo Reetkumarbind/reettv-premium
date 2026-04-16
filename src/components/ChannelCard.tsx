@@ -1,5 +1,5 @@
 import React, { useState, memo } from 'react';
-import { Heart, Play, Wifi } from 'lucide-react';
+import { Heart, Play } from 'lucide-react';
 import { IPTVChannel } from '../types';
 
 interface ChannelCardProps {
