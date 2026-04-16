@@ -32,29 +32,36 @@ const RecentlyWatched: React.FC<RecentlyWatchedProps> = memo(({ history, channel
         <Clock className="w-4 h-4 text-primary" />
         <h3 className="text-sm font-bold text-foreground">Recently Watched</h3>
       </div>
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1">
+      <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-1">
         {recentChannels.map((channel) => {
           const historyItem = history.find(h => h.channelId === channel.id);
+          const hue = [...channel.name].reduce((h, c) => c.charCodeAt(0) + ((h << 5) - h), 0) % 360;
           return (
             <button
               key={channel.id}
               onClick={() => onSelect(channel)}
-              className="flex-shrink-0 group relative w-28 sm:w-32 rounded-xl overflow-hidden bg-muted/20 border border-border/10 hover:border-primary/30 transition-all hover:scale-[1.03] active:scale-95"
+              className="flex-shrink-0 group flex flex-col items-center transition-all hover:-translate-y-1 active:scale-95"
             >
-              <div className="aspect-video bg-muted/30 flex items-center justify-center relative">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-2 border-border/20 group-hover:border-primary/40 transition-colors duration-300">
+                <div className="absolute inset-0 rounded-full bg-card" />
                 {channel.logo ? (
-                  <img src={channel.logo} alt="" className="w-full h-full object-contain p-2" loading="lazy" />
+                  <img src={channel.logo} alt="" className="relative w-full h-full object-contain p-2.5" loading="lazy" />
                 ) : (
-                  <span className="text-lg font-bold text-muted-foreground/30">{channel.name[0]}</span>
+                  <div
+                    className="absolute inset-0 rounded-full flex items-center justify-center"
+                    style={{ background: `linear-gradient(135deg, hsl(${Math.abs(hue)} 50% 20%), hsl(${(Math.abs(hue) + 40) % 360} 40% 15%))` }}
+                  >
+                    <span className="text-base font-black text-foreground/50 select-none">{channel.name.slice(0, 2).toUpperCase()}</span>
+                  </div>
                 )}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                  <Play className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                  <Play className="w-5 h-5 text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity" fill="currentColor" />
                 </div>
               </div>
-              <div className="p-2">
-                <p className="text-xs font-medium text-foreground truncate">{channel.name}</p>
+              <div className="mt-1.5 text-center w-16 sm:w-20">
+                <p className="text-[10px] sm:text-xs font-semibold text-foreground truncate">{channel.name}</p>
                 {historyItem && (
-                  <p className="text-[10px] text-muted-foreground">{timeAgo(historyItem.timestamp)}</p>
+                  <p className="text-[9px] text-muted-foreground">{timeAgo(historyItem.timestamp)}</p>
                 )}
               </div>
             </button>
